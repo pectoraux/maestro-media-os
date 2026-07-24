@@ -241,7 +241,7 @@ model ApprovalGate {
 // ── Knowledge graph (persistent intelligence) ─────────────────────────────────
 model KnowledgeNode {
   id        String   @id @default(cuid())
-  type      String   // audience_insight | creator_voice | research | editorial | history | pattern | competitor
+  type      String   // Semantic memory + intelligence: principle | lesson | pattern | mistake | experiment | framework | evidence | relationship | audience_reaction | audience_insight | creator_voice | research | editorial | history | competitor | story | opinion | analogy | experience | winning_hook | winning_title | thumbnail_style | editing_style | performance_history
   label     String
   content   String
   weight    Float    @default(1)
@@ -496,6 +496,7 @@ model CreatorIdentity {
   audienceExpectations String  // JSON: { whatTheyComeFor, whatTheyTrust, whatTheyReject }
   voiceDNAId          String?  // link to latest VoiceDNA
   authenticityScore   Float    @default(0) // 0-1, how well-captured the identity is
+  extendedDimensions  String   @default("{}") // JSON: visualLanguage, editingStyle, musicTaste, brandLanguage, relationships, products, companies, history, goals, thinkingStyle, reasoning, cameraStyle
   updatedAt           DateTime @updatedAt
   createdAt           DateTime @default(now())
 
@@ -535,4 +536,52 @@ model ProductionPlan {
   project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("production_plans")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 4 — Authenticity Engine + Media DNA + Semantic Memory + Developer SDK
+// The differentiator: the system understands identity and authenticity better
+// than anyone. Every artifact is scored; publishing is blocked if authenticity drops.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Media DNA: the reference models the Authenticity Engine checks against.
+// Generalizes Voice DNA into 8 DNA types. Each extension can improve one or more.
+model MediaDNA {
+  id        String   @id @default(cuid())
+  type      String   // voice | visual | writing | editing | story | reasoning | brand | teaching
+  content   String   // JSON: type-specific DNA profile
+  source    String   @default("builtin") // builtin | extension:<extId> | manual
+  sourceRef String?  // e.g. voice DNA id, extension id
+  confidence Float   @default(0.5) // 0-1, how confident we are in this model
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@map("media_dna")
+}
+
+// ── Authenticity Score: every artifact gets scored on 7 dimensions.
+// If overall < threshold OR a blocking dimension fails, publish is refused.
+model AuthenticityScore {
+  id                  String   @id @default(cuid())
+  projectId           String?
+  artifactType        String   // script | trifecta | thumbnail | scene | full_production
+  artifactRef         String?  // id of the specific artifact (script id, trifecta id, etc.)
+  overall             Float    // 0-100 composite
+  voice               Float    // does it match the Voice DNA?
+  reasoning           Float    // does it match the creator's reasoning/thinking style?
+  humor               Float    // does it match the creator's humor?
+  vocabulary          Float    // does it use the creator's vocabulary?
+  editing             Float    // does the editing/structure match?
+  visualIdentity      Float    // does the visual language match?
+  audienceExpectation Float    // does it meet what the audience expects?
+  passed              Boolean  @default(false) // overall >= threshold AND no blocking dimension failed
+  blockingReason      String?  // why it was blocked (if !passed)
+  threshold           Float    @default(70) // the threshold this check used
+  rationale           String?  // LLM explanation of the scores
+  createdAt           DateTime @default(now())
+
+  @@index([projectId, artifactType])
+  @@index([passed])
+  @@map("authenticity_scores")
 }

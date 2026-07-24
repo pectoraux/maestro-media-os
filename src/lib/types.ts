@@ -624,3 +624,84 @@ export interface MediaOSOverview {
   capabilitiesByCategory: { category: string; count: number }[];
   activePlans: number;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 4 — Authenticity Engine + Media DNA + Semantic Memory + Developer SDK
+// ════════════════════════════════════════════════════════════════════════════
+
+export type MediaDNAType = "voice" | "visual" | "writing" | "editing" | "story" | "reasoning" | "brand" | "teaching";
+
+export interface MediaDNARecord {
+  id: string;
+  type: MediaDNAType;
+  content: Record<string, unknown>;
+  source: string;
+  sourceRef?: string | null;
+  confidence: number;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface AuthenticityDimensionScore {
+  voice: number;
+  reasoning: number;
+  humor: number;
+  vocabulary: number;
+  editing: number;
+  visualIdentity: number;
+  audienceExpectation: number;
+}
+
+export interface AuthenticityScoreRecord {
+  id: string;
+  projectId?: string | null;
+  artifactType: "script" | "trifecta" | "thumbnail" | "scene" | "full_production";
+  artifactRef?: string | null;
+  overall: number;
+  dimensions: AuthenticityDimensionScore;
+  passed: boolean;
+  blockingReason?: string | null;
+  threshold: number;
+  rationale?: string | null;
+  createdAt: string;
+}
+
+export interface AuthenticityCheckResult {
+  passed: boolean;
+  overall: number;
+  dimensions: AuthenticityDimensionScore;
+  blockingReason?: string;
+  threshold: number;
+  rationale: string;
+  scoreId: string;
+}
+
+export type SemanticMemoryType =
+  | "principle" | "lesson" | "pattern" | "mistake" | "experiment"
+  | "framework" | "evidence" | "relationship" | "audience_reaction";
+
+export interface SemanticMemoryRecord {
+  id: string;
+  type: SemanticMemoryType;
+  label: string;
+  content: string;
+  evidence?: string;
+  confidence: number;
+  weight: number;
+  projectId?: string | null;
+  createdAt: string;
+}
+
+// Developer SDK: defineExtension spec
+export interface ExtensionManifest {
+  id: string;
+  version: string;
+  name: string;
+  description: string;
+  capabilities: { key: string; name: string; description: string; inputs?: string[]; outputs?: string[] }[];
+  agents: string[];
+  connectors: string[];
+  workflows: string[];
+  permissions: string[];
+  requirements?: Record<string, unknown>;
+}

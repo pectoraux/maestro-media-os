@@ -21,7 +21,9 @@ export type ViewKey =
   | "marketplace"
   | "identity"
   | "connectors"
-  | "director";
+  | "director"
+  | "authenticity"
+  | "developer";
 
 interface AppState {
   view: ViewKey;

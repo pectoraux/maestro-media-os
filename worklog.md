@@ -602,3 +602,39 @@ Stage Summary:
 - YouTube is one of 8 output channels. The OS can produce for TikTok, Instagram, X, LinkedIn, Substack, Podcasts, Shorts.
 - Creator Identity Engine unifies beliefs, experiences, stories, frameworks, values, vocabulary — "AI should imitate YOU, not imitate ANYONE."
 - The same operating system can expand to podcasts, newsletters, courses, and other media formats without changing the core architecture — new channels are just connectors, new AI tools are just extensions.
+
+---
+Task ID: 1-5 (Phase 4 — Authenticity Engine)
+Agent: main
+Task: Build the Authenticity Engine (the differentiator), Media DNA, Semantic Memory, and Developer SDK
+
+Work Log:
+- Schema: added MediaDNA model (8 types: voice/visual/writing/editing/story/reasoning/brand/teaching), AuthenticityScore model (7 dimensions: voice/reasoning/humor/vocabulary/editing/visualIdentity/audienceExpectation, overall, passed, blockingReason, threshold). Extended CreatorIdentity with extendedDimensions JSON (visualLanguage, editingStyle, musicTaste, brandLanguage, relationships, products, companies, history, goals, thinkingStyle, reasoning, cameraStyle). Expanded KnowledgeNode type taxonomy to include semantic memory types (principle/lesson/pattern/mistake/experiment/framework/evidence/relationship/audience_reaction). db:push OK (30 models).
+- Seed (seed-authenticity.ts): 8 Media DNA models (voice from existing VoiceDNA + 7 new: visual/writing/editing/story/reasoning/brand/teaching), 12 semantic memories (principles, lessons, patterns, mistakes, frameworks, evidence, audience reactions), extended creator identity dimensions. Ran successfully.
+- Kernel (src/lib/os/):
+  - media-dna.ts: listMediaDNA, getMediaDNAByType, getMediaDNAContext (compiles all 8 DNA models into a grounding prompt), updateMediaDNA. DNA_TYPES registry.
+  - memory.ts: listMemories, createMemory, getMemoryCounts, getMemoryContext (compiles principles/lessons/patterns/mistakes/frameworks into a context string). MEMORY_TYPES registry (9 types).
+  - authenticity.ts (CENTERPIECE): checkAuthenticity(artifact, threshold) — takes an artifact (script/trifecta/thumbnail/scene), loads Media DNA context + Semantic Memory context + Creator Identity context, calls llmJson with a rigorous prompt that scores 7 dimensions (0-100). Pass condition: overall >= threshold AND no dimension < 60 (blocking floor). Persists AuthenticityScore. canPublish(projectId) enforcement gate. listScores, getLatestScore.
+  - sdk.ts: defineExtension(manifest) validator, publishExtension(manifest) — creates Extension row + registers capabilities. EXAMPLE_MANIFESTS (Realistic Video Studio, Voice Studio).
+- API routes: /api/os/authenticity/check (POST), /api/os/authenticity/scores (GET), /api/os/media-dna (GET/PUT), /api/os/memory (GET/POST), /api/os/sdk/publish (GET examples / POST publish).
+- API client: added checkAuthenticity, listAuthenticityScores, listMediaDNA, listMemories, createMemory, getSDKExamples, publishExtension.
+- Store: added "authenticity" and "developer" ViewKeys.
+- page.tsx: added Authenticity Engine + Developer SDK to Platform nav group. 21 total nav items.
+- Built 2 new views:
+  - authenticity-view.tsx: artifact type selector + textarea + "Load sample script" + "Run authenticity check" button (15-20s LLM). Result shows pass/fail banner, overall score, 7 dimension bars (animated, color-coded), rationale, blocking reason. History of recent checks. The sample script (vector DB contrarian take) scored 88/100 overall but was BLOCKED because visualIdentity was 50 (a script has no visual elements) — demonstrating the dimension-floor enforcement.
+  - developer-view.tsx: defineExtension() code reference, example extension cards (loadable), manifest JSON publisher textarea + publish button. Published "Realistic Video Studio" — registered 3 capabilities (video.generate, video.lipsync, video.camera_motion) + appeared in marketplace.
+
+Agent Browser self-verification:
+- Authenticity Engine: loaded sample script, ran real check → LLM scored 7 dimensions, overall 88/100, BLOCKED because visualIdentity=50 < 60 floor. Rationale displayed. Score persisted. This is exactly the "refuses to publish until fixed" behavior.
+- Developer SDK: loaded Realistic Video Studio example, published → extension created (Publisher: Developer SDK, 3 capabilities, agent: Video Director), capabilities registered in Capability Registry, appeared in marketplace (8 extensions, up from 7).
+- Footer: sticky (2169px content, footer at bottom). Mobile: 390px no overflow. Lint: clean. Dev log: no errors.
+- Screenshot: verify-phase4-authenticity.png.
+
+Stage Summary:
+- The Authenticity Engine is the differentiator: "does this feel like this creator actually made it?" Not "can AI generate this?"
+- 7-dimension scoring (voice, reasoning, humor, vocabulary, editing, visualIdentity, audienceExpectation) against Media DNA + Identity + Semantic Memory.
+- Enforcement: overall >= 70 AND no dimension < 60, or publishing is refused.
+- Media DNA: 8 reference models (voice/visual/writing/editing/story/reasoning/brand/teaching) that the engine checks against.
+- Semantic Memory: typed knowledge (principles, lessons, patterns, mistakes, experiments, frameworks, evidence, relationships, audience reactions) that compounds over time.
+- Developer SDK: defineExtension() abstraction — developers publish extensions, the kernel discovers capabilities automatically. Published extensions appear in the marketplace and can be installed.
+- The platform now has 30 Prisma models, 21 nav views, 8 OS kernel modules, and enforces authenticity as a runtime policy rather than documentation.

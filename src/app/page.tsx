@@ -28,6 +28,8 @@ import {
   IdCard,
   Plug,
   Compass,
+  ShieldCheck,
+  Code2,
 } from "lucide-react";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { OpportunitiesView } from "@/components/views/opportunities-view";
@@ -48,6 +50,8 @@ import { MarketplaceView } from "@/components/views/marketplace-view";
 import { IdentityView } from "@/components/views/identity-view";
 import { ConnectorsView } from "@/components/views/connectors-view";
 import { DirectorView } from "@/components/views/director-view";
+import { AuthenticityView } from "@/components/views/authenticity-view";
+import { DeveloperView } from "@/components/views/developer-view";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -64,9 +68,11 @@ const NAV: { key: ViewKey; label: string; icon: React.ComponentType<{ className?
   { key: "publish", label: "YouTube Publishing", icon: Send, group: "Production" },
   { key: "competitors", label: "Competitor Intelligence", icon: Crosshair, group: "Intelligence" },
   { key: "voice-dna", label: "Voice DNA", icon: Fingerprint, group: "Intelligence" },
+  { key: "authenticity", label: "Authenticity Engine", icon: ShieldCheck, group: "Platform" },
   { key: "identity", label: "Creator Identity", icon: IdCard, group: "Platform" },
   { key: "marketplace", label: "Capability Marketplace", icon: Store, group: "Platform" },
   { key: "connectors", label: "Output Connectors", icon: Plug, group: "Platform" },
+  { key: "developer", label: "Developer SDK", icon: Code2, group: "Platform" },
   { key: "agents", label: "Agent Roster", icon: Bot, group: "Intelligence" },
   { key: "knowledge", label: "Knowledge Graph", icon: Network, group: "Intelligence" },
   { key: "analytics", label: "Performance & Learning", icon: BarChart3, group: "Intelligence" },
@@ -240,6 +246,8 @@ export default function Home() {
             {view === "marketplace" && <MarketplaceView />}
             {view === "identity" && <IdentityView />}
             {view === "connectors" && <ConnectorsView />}
+            {view === "authenticity" && <AuthenticityView />}
+            {view === "developer" && <DeveloperView />}
             {view === "competitors" && <CompetitorsView />}
             {view === "voice-dna" && <VoiceDnaView />}
             {view === "agents" && <AgentsView />}

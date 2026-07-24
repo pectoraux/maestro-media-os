@@ -432,4 +432,37 @@ export const api = {
     fetch(`/api/os/director/plans/${id}`, { method: "POST" }).then((r) =>
       jsonOrThrow<{ plan: ProductionPlanRecord }>(r),
     ),
+
+
+  // ── Phase 4: Authenticity Engine + Media DNA + Semantic Memory + SDK ─────
+  checkAuthenticity: (body: { type?: string; content: string; ref?: string; projectId?: string; context?: string; threshold?: number }) =>
+    fetch("/api/os/authenticity/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => jsonOrThrow<any>(r)),
+  listAuthenticityScores: (projectId?: string) =>
+    fetch(`/api/os/authenticity/scores${projectId ? `?projectId=${projectId}` : ""}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ scores: any[] }>(r),
+    ),
+  listMediaDNA: () =>
+    fetch("/api/os/media-dna", { cache: "no-store" }).then((r) => jsonOrThrow<{ dnas: any[] }>(r)),
+  listMemories: (type?: string) =>
+    fetch(`/api/os/memory${type ? `?type=${type}` : ""}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ memories: any[]; counts: Record<string, number> }>(r),
+    ),
+  createMemory: (body: { type: string; label: string; content: string; evidence?: string; confidence?: number }) =>
+    fetch("/api/os/memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => jsonOrThrow<{ memory: any }>(r)),
+  getSDKExamples: () =>
+    fetch("/api/os/sdk/publish", { cache: "no-store" }).then((r) => jsonOrThrow<{ examples: any[] }>(r)),
+  publishExtension: (manifest: any) =>
+    fetch("/api/os/sdk/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(manifest),
+    }).then((r) => jsonOrThrow<{ extension: any }>(r)),
 };
