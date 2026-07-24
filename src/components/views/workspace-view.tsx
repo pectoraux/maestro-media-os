@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type ProjectDetail } from "@/lib/api";
 import { useApp } from "@/lib/store";
 import { AGENT_MAP, PIPELINE, STAGE_INDEX } from "@/lib/agents-registry";
+import { TrifectaPanel as TrifectaPanelV2 } from "@/components/views/trifecta-panel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -680,8 +681,8 @@ function ScriptsPanel({ scripts }: { scripts: ScriptRecord[] }) {
   );
 }
 
-// ── Artifact: Holy Trifecta panel ────────────────────────────────────────
-function TrifectaPanel({ t }: { t: TrifectaRecord }) {
+// ── Artifact: Holy Trifecta panel (legacy read-only view) ─────────────────
+function LegacyTrifectaPanel({ t }: { t: TrifectaRecord }) {
   const thumb = t.thumbnailStrategy;
   return (
     <div className="space-y-4">
@@ -1008,8 +1009,8 @@ function ArtifactsAccordion({ project }: { project: ProjectDetail }) {
       value: "trifecta",
       label: "Holy Trifecta",
       icon: Zap,
-      present: !!project.trifecta,
-      node: project.trifecta ? <TrifectaPanel t={project.trifecta} /> : null,
+      present: true,
+      node: <TrifectaPanelV2 projectId={project.id} />,
     },
     {
       value: "blueprint",

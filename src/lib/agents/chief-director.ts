@@ -8,11 +8,13 @@ import type { AgentType, AssetRecord } from "@/lib/types";
 import { withRun, ensureApprovalGate, logActivity, type AgentCtx } from "./_helpers";
 import { STAGE_INDEX, PIPELINE } from "@/lib/agents-registry";
 import { runResearchAnalyst } from "./research-analyst";
+import { runCompetitorIntelligence } from "./competitor-intelligence";
 import { runStoryArchitect } from "./story-architect";
 import { runScriptWriter } from "./script-writer";
 import { runFactChecker } from "./fact-checker";
 import { runHookEngineer } from "./hook-engineer";
 import { runThumbnailDirector } from "./thumbnail-director";
+import { runProductionDesigner } from "./production-designer";
 import { runSeoSpecialist } from "./seo-specialist";
 import { runPublishingManager } from "./publishing-manager";
 import { runAnalyticsScientist } from "./analytics-scientist";
@@ -45,7 +47,8 @@ export async function runChiefDirector(
 ): Promise<unknown> {
   const action = (ctx.action ?? (ctx.input?.action as Action) ?? "advance") as Action;
   return withRun(AGENT, { ...ctx, input: { ...ctx.input, action } }, async () => {
-    const projectId = ctx.projectId!;
+    const projectId = ctx.projectId;
+    if (!projectId) throw new Error("projectId is required for chief_director");
 
     if (action === "interview_questions") {
       return interviewQuestions(projectId);
@@ -220,6 +223,12 @@ async function advance(projectId: string, input?: Record<string, unknown>) {
   // After approval, project.stage moves to the next pipeline stage; advance then
   // produces the work for that stage.
   const targetAgent = currentStage.agent;
+  // Override: the dossier stage now dispatches to competitor_intelligence (Scout)
+  // for the real deep-video analysis, instead of research_analyst. The research_analyst
+  // can still be invoked explicitly via /api/agents/run.
+  if (currentStage.key === "dossier") {
+    return runCompetitorIntelligence({ projectId, input });
+  }
   switch (targetAgent) {
     case "opportunity_hunter":
       // Re-running opportunity_hunter would create a NEW project; refuse here.
@@ -229,6 +238,8 @@ async function advance(projectId: string, input?: Record<string, unknown>) {
       };
     case "research_analyst":
       return runResearchAnalyst({ projectId });
+    case "competitor_intelligence":
+      return runCompetitorIntelligence({ projectId, input });
     case "chief_director":
       // current stage is "interview" — produce interview questions
       return interviewQuestions(projectId);
@@ -246,6 +257,8 @@ async function advance(projectId: string, input?: Record<string, unknown>) {
       return runHookEngineer({ projectId });
     case "thumbnail_director":
       return runThumbnailDirector({ projectId });
+    case "production_designer":
+      return runProductionDesigner({ projectId });
     case "seo_specialist":
       return runSeoSpecialist({ projectId });
     case "publishing_manager":

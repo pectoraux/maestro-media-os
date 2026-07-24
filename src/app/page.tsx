@@ -17,6 +17,12 @@ import {
   Menu,
   Activity,
   CircleDot,
+  Satellite,
+  Crosshair,
+  MessagesSquare,
+  Fingerprint,
+  Clapperboard,
+  Send,
 } from "lucide-react";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { OpportunitiesView } from "@/components/views/opportunities-view";
@@ -26,15 +32,27 @@ import { AgentsView } from "@/components/views/agents-view";
 import { KnowledgeView } from "@/components/views/knowledge-view";
 import { AnalyticsView } from "@/components/views/analytics-view";
 import { CreatorView } from "@/components/views/creator-view";
+import { IntelligenceView } from "@/components/views/intelligence-view";
+import { CompetitorsView } from "@/components/views/competitors-view";
+import { InterviewView } from "@/components/views/interview-view";
+import { VoiceDnaView } from "@/components/views/voice-dna-view";
+import { ProductionView } from "@/components/views/production-view";
+import { PublishView } from "@/components/views/publish-view";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 const NAV: { key: ViewKey; label: string; icon: React.ComponentType<{ className?: string }>; group: string }[] = [
   { key: "dashboard", label: "Command Center", icon: LayoutDashboard, group: "Overview" },
+  { key: "intelligence", label: "Intelligence Engine", icon: Satellite, group: "Overview" },
   { key: "opportunities", label: "Opportunity Discovery", icon: Radar, group: "Overview" },
   { key: "approvals", label: "Approval Queue", icon: ClipboardCheck, group: "Overview" },
   { key: "workspace", label: "Project Workspace", icon: Workflow, group: "Production" },
-  { key: "agents", label: "Agent Roster", icon: Bot, group: "Production" },
+  { key: "interview", label: "Creator Interview", icon: MessagesSquare, group: "Production" },
+  { key: "production", label: "Production Blueprint", icon: Clapperboard, group: "Production" },
+  { key: "publish", label: "YouTube Publishing", icon: Send, group: "Production" },
+  { key: "competitors", label: "Competitor Intelligence", icon: Crosshair, group: "Intelligence" },
+  { key: "voice-dna", label: "Voice DNA", icon: Fingerprint, group: "Intelligence" },
+  { key: "agents", label: "Agent Roster", icon: Bot, group: "Intelligence" },
   { key: "knowledge", label: "Knowledge Graph", icon: Network, group: "Intelligence" },
   { key: "analytics", label: "Performance & Learning", icon: BarChart3, group: "Intelligence" },
   { key: "creator", label: "Creator Profile", icon: UserRound, group: "Intelligence" },
@@ -195,9 +213,15 @@ export default function Home() {
 
           <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">
             {view === "dashboard" && <DashboardView />}
+            {view === "intelligence" && <IntelligenceView />}
             {view === "opportunities" && <OpportunitiesView />}
-            {view === "workspace" && <WorkspaceView />}
             {view === "approvals" && <ApprovalsView />}
+            {view === "workspace" && <WorkspaceView />}
+            {view === "interview" && <InterviewView />}
+            {view === "production" && <ProductionView />}
+            {view === "publish" && <PublishView />}
+            {view === "competitors" && <CompetitorsView />}
+            {view === "voice-dna" && <VoiceDnaView />}
             {view === "agents" && <AgentsView />}
             {view === "knowledge" && <KnowledgeView />}
             {view === "analytics" && <AnalyticsView />}
@@ -217,7 +241,7 @@ export default function Home() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <span>12 specialized agents · 1 human strategist</span>
+            <span>15 specialized agents · 1 human strategist</span>
             <span className="hidden sm:inline">·</span>
             <span className="hidden sm:inline">Persistent knowledge graph</span>
             <span className="hidden md:inline">·</span>

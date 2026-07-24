@@ -52,12 +52,18 @@ function metricTextColor(v: number): string {
   return "text-rose-300";
 }
 
-const BREAKDOWN_LABELS: { key: keyof OpportunityScoreBreakdown; label: string }[] = [
+const BREAKDOWN_LABELS: { key: string; label: string }[] = [
+  // Phase 2 advanced 6-factor (new)
+  { key: "viralVelocity", label: "Viral velocity" },
   { key: "searchDemand", label: "Search demand" },
+  { key: "competitionGap", label: "Competition gap" },
+  { key: "monetizationPotential", label: "Monetization" },
+  { key: "expertiseAlignment", label: "Expertise fit" },
+  { key: "trendMomentum", label: "Trend momentum" },
+  // Legacy 6-factor (Phase 1 seeded)
   { key: "competition", label: "Competition" },
   { key: "freshness", label: "Freshness" },
   { key: "audienceFit", label: "Audience fit" },
-  { key: "monetization", label: "Monetization" },
   { key: "knowledgeGap", label: "Knowledge gap" },
 ];
 
@@ -110,10 +116,12 @@ function OpportunitySkeleton() {
 }
 
 // ── Score breakdown bars ──────────────────────────────────────────────────
-function ScoreBreakdown({ breakdown }: { breakdown: OpportunityScoreBreakdown }) {
+function ScoreBreakdown({ breakdown }: { breakdown: Record<string, number> }) {
+  const present = BREAKDOWN_LABELS.filter(({ key }) => breakdown && key in breakdown && Number(breakdown[key]) > 0);
+  const labels = present.length > 0 ? present : BREAKDOWN_LABELS.slice(0, 6);
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
-      {BREAKDOWN_LABELS.map(({ key, label }) => {
+      {labels.map(({ key, label }) => {
         const v = Number(breakdown?.[key] ?? 0);
         return (
           <div key={key} className="space-y-1">

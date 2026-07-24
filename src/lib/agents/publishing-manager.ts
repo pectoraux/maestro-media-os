@@ -1,66 +1,88 @@
 // Agent 9 — Publishing Manager ("Caster")
-// Packages the upload metadata + schedules the publish time.
+// Real YouTube publishing pipeline: connects a channel, packages the upload
+// payload, and triggers the (simulated) publish.
 
-import { db } from "@/lib/db";
 import type { AgentType } from "@/lib/types";
-import { withRun, ensureApprovalGate, logActivity, type AgentCtx } from "./_helpers";
+import { withRun, ensureApprovalGate, logActivity, setProjectStage, type AgentCtx } from "./_helpers";
+import {
+  connectChannel,
+  packageUploadPayload,
+  publishProject,
+} from "@/lib/intelligence/youtube-publishing";
 
 const AGENT: AgentType = "publishing_manager";
 
-export async function runPublishingManager(ctx: AgentCtx): Promise<{ scheduledAt: string; packaged: true }> {
+export async function runPublishingManager(ctx: AgentCtx): Promise<{
+  published: boolean;
+  scheduledAt: string | null;
+  note: string;
+  payload: Awaited<ReturnType<typeof packageUploadPayload>>;
+}> {
   return withRun(AGENT, ctx, async () => {
-    const projectId = ctx.projectId!;
-    const project = await db.project.findUnique({
-      where: { id: projectId },
-      include: { publishMetadata: true, trifecta: true, blueprint: true },
-    });
-    if (!project) throw new Error("Project not found");
-    if (!project.publishMetadata) throw new Error("No publish metadata — run seo_specialist first");
+    const projectId = ctx.projectId;
+    if (!projectId) throw new Error("projectId is required for publishing_manager");
 
-    // publishAt = input.publishAt OR existing OR now + 3 days
-    const inputPublishAt = ctx.input?.publishAt as string | undefined;
-    let publishAt: Date;
-    if (inputPublishAt) {
-      publishAt = new Date(inputPublishAt);
-    } else if (project.publishMetadata.publishAt) {
-      publishAt = project.publishMetadata.publishAt;
-    } else {
-      publishAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    // 1. If a channel name is provided, connect it.
+    const channelName = ctx.input?.connectChannel as string | undefined;
+    if (channelName) {
+      await connectChannel(channelName);
     }
 
-    await db.publishMetadata.update({
-      where: { projectId },
-      data: { publishAt },
-    });
+    // 2. Package the upload payload (also surfaces missing requirements).
+    const payload = await packageUploadPayload(projectId);
+    if (!payload.ready) {
+      throw new Error(
+        `Cannot publish yet. Missing: ${payload.missing.join(", ")}. Run the required agents first.`,
+      );
+    }
 
-    await db.project.update({
-      where: { id: projectId },
-      data: { stage: "scheduled", status: "publish" },
-    });
+    // 3. Publish (or schedule) the project.
+    const result = await publishProject(projectId);
 
+    // 4. Build the approval gate at "scheduled".
     await ensureApprovalGate({
       projectId,
       stage: "scheduled",
       agentType: AGENT,
       payload: {
-        title: `Publish Schedule: ${publishAt.toISOString()}`,
-        summary: `Video scheduled to publish at ${publishAt.toISOString()}.`,
+        title: "Publish to YouTube",
+        summary: payload.title,
         highlights: [
-          `Title: ${project.trifecta?.title ?? project.title}`,
-          `Blueprint: ${project.blueprint ? "ready" : "missing"}`,
-          `Publish at: ${publishAt.toISOString()}`,
+          `${payload.tags.length} tags`,
+          `${payload.chapters.length} chapters`,
+          `Pinned comment ready`,
+          `Publish at ${payload.publishAt ?? "now"}`,
         ],
-        artifacts: [{ label: "PublishAt", value: publishAt.toISOString() }],
+        artifacts: [
+          { label: "Playlist", value: payload.playlist ?? "—" },
+          { label: "Category", value: "Science & Tech" },
+          { label: "Title", value: payload.title },
+          { label: "Publish at", value: payload.publishAt ?? "now" },
+        ],
       },
     });
+
+    // 5. Update project stage + status.
+    await setProjectStage(projectId, "scheduled", "publish");
 
     await logActivity({
       projectId,
       type: "agent",
-      message: `Publishing Manager scheduled video for ${publishAt.toISOString()}`,
-      meta: { agent: AGENT, publishAt: publishAt.toISOString() },
+      message: `Publishing Manager (Caster) packaged upload payload — ${payload.tags.length} tags, ${payload.chapters.length} chapters. ${result.note}`,
+      meta: {
+        agent: AGENT,
+        published: result.published,
+        scheduledAt: result.scheduledAt,
+        tagsCount: payload.tags.length,
+        chaptersCount: payload.chapters.length,
+      },
     });
 
-    return { scheduledAt: publishAt.toISOString(), packaged: true as const };
+    return {
+      published: result.published,
+      scheduledAt: result.scheduledAt,
+      note: result.note,
+      payload,
+    };
   });
 }

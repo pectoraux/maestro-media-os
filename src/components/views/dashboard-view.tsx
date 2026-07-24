@@ -98,7 +98,7 @@ export function DashboardView() {
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1">
               <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
               <span className="text-[11px] font-medium uppercase tracking-wider text-emerald-300">
-                12 Agents · 1 Maestro
+                15 Agents · 1 Maestro
               </span>
             </div>
             <h1 className="text-3xl font-semibold tracking-tight lg:text-4xl">
@@ -158,9 +158,9 @@ export function DashboardView() {
         />
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Active projects */}
-        <Card className="lg:col-span-2 border-border/60 bg-card/40 p-5">
+        <Card className="min-w-0 lg:col-span-2 border-border/60 bg-card/40 p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold">In-flight productions</h2>
@@ -240,7 +240,7 @@ export function DashboardView() {
       </div>
 
       {/* Recent opportunities + agent activity */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="border-border/60 bg-card/40 p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold">Latest opportunities</h2>

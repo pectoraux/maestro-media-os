@@ -33,6 +33,11 @@ model Project {
   agentRuns       AgentRun[]
   approvals       ApprovalGate[]
   activities      ActivityLog[]
+  competitorVideos CompetitorVideo[]
+  interviewSession InterviewSession?
+  thumbnailBriefs  ThumbnailBrief[]
+  productionScenes ProductionScene[]
+  trendSignals     TrendSignal[]
 
   @@map("projects")
 }
@@ -274,3 +279,150 @@ model ActivityLog {
   @@index([createdAt])
   @@map("activity_logs")
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 2 — Real intelligence, production & publishing models
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Raw trend/intelligence signals gathered by the Opportunity Intelligence Engine
+// One row per discrete signal (a YouTube video, a Reddit thread, a Trends point, a news item)
+model TrendSignal {
+  id          String   @id @default(cuid())
+  projectId   String?
+  niche       String
+  source      String   // youtube | google_trends | reddit | news | search | competitor
+  title       String
+  url         String
+  snippet     String
+  metric      String?  // e.g. "views", "upvotes", "interest", "subs"
+  metricValue Float?
+  momentum    String?  // rising | peaking | stable | declining
+  capturedAt  DateTime @default(now())
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([niche])
+  @@index([source])
+  @@map("trend_signals")
+}
+
+// ── Competitor Video Intelligence: deep analysis of a single competing video
+model CompetitorVideo {
+  id            String   @id @default(cuid())
+  projectId     String?
+  niche         String
+  url           String
+  channel       String
+  title         String
+  views         Int      @default(0)
+  likes         Int      @default(0)
+  comments      Int      @default(0)
+  publishedAt   String?
+  durationSec   Int      @default(0)
+  // analysis JSON
+  titleAnalysis String   // JSON: { pattern, hooks, curiosityTriggers, length, sentiment }
+  thumbnailAnalysis String // JSON: { composition, focal, textOverlay, emotion, colorMood, readability }
+  transcriptSummary String // JSON: { structure, keyPoints, retentionPattern, callsToAction }
+  commentInsights String  // JSON: { topQuestions, painPoints, praises, objections, audienceQuestions[] }
+  winningPatterns String  // JSON: [{ pattern, whyItWorked, applicability }]
+  performanceScore Float  @default(0) // normalized 0-100
+  capturedAt    DateTime @default(now())
+  project       Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([niche])
+  @@map("competitor_videos")
+}
+
+// ── Creator Voice DNA: expanded, learned voice profile (rich JSON)
+// Single active row (the latest). Each extraction creates a new row; the API returns the newest.
+model VoiceDNA {
+  id              String   @id @default(cuid())
+  writingStyle    String   // JSON: { avgSentenceLength, structure, complexity, register }
+  vocabulary      String   // JSON: { signaturePhrases[], favoriteWords[], jargon[], avoidedTerms[] }
+  storytellingPatterns String // JSON: { openings[], callbacks[], frameworks[], transitions[] }
+  humor           String   // JSON: { style, frequency, type, examples[] }
+  pacing          String   // JSON: { wordsPerMinute, pausePattern, sectionLength, rhythm }
+  contentPreferences String // JSON: { preferredFormats[], idealLength, structurePreference, depthLevel }
+  emotionalTone   String   // JSON: { defaultTone, range, shifts, intensity }
+  uniquenessScore Float    @default(0)
+  sourceSamples   String   // JSON: [{ from, excerpt }] — provenance
+  sampleCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@map("voice_dna")
+}
+
+// ── Conversational Interview Session state
+model InterviewSession {
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  status      String   @default("active") // active | completed
+  topicsCovered String  // JSON: [{ topic, covered: bool, depth: 0-1 }]
+  questions   String   // JSON: [{ id, question, intent, topic, asked: bool }]
+  extracted   String   // JSON: [{ type: story|opinion|framework|example|expertise, content, themeTag }]
+  turnCount   Int      @default(0)
+  startedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("interview_sessions")
+}
+
+// ── Thumbnail Brief: detailed director brief + AI generation prompts
+model ThumbnailBrief {
+  id              String   @id @default(cuid())
+  projectId       String
+  concept         String
+  visualLayout    String   // JSON: { composition, focalSubject, background, depth, ruleOfThirds }
+  textOverlay     String   // JSON: { text, font, size, position, contrast }
+  emotionalTriggers String // JSON: [{ trigger, how }]
+  colorMood       String   // JSON: { palette[], mood, contrast }
+  mobileReadability Float  // 0-100 score
+  readabilityNotes String
+  aiPrompts       String   // JSON: [{ variant, prompt, size, styleNotes }]
+  generatedImageUrl String? // base64 data URL or path when generated
+  status          String   @default("brief") // brief | generating | generated | failed
+  createdAt       DateTime @default(now())
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("thumbnail_briefs")
+}
+
+// ── Production Scene: granular scene-by-scene editor instructions
+model ProductionScene {
+  id           String   @id @default(cuid())
+  projectId    String
+  sceneNumber  Int
+  timecode     String   // "0:00-0:30"
+  section      String
+  visualDescription String
+  brollSuggestions String  // JSON: [{ description, source, duration }]
+  motionGraphics String    // JSON: [{ type, description, trigger }]
+  editorInstructions String
+  captions     String   // JSON: [{ text, timing, style }]
+  transitions  String   // JSON: [{ from, to, type }]
+  assetRequirements String // JSON: [{ type, description, priority }]
+  retentionNotes String
+  createdAt    DateTime @default(now())
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("production_scenes")
+}
+
+// ── YouTube OAuth connection (per-creator; single active row)
+model YouTubeConnection {
+  id            String   @id @default(cuid())
+  channelName   String?
+  channelId     String?
+  accessToken   String?
+  refreshToken  String?
+  expiresAt     DateTime?
+  connectedAt   DateTime?
+  status        String   @default("disconnected") // disconnected | connected | expired | error
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("youtube_connections")
+}
+

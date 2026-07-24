@@ -4,6 +4,7 @@ export type AgentType =
   | "chief_director"
   | "opportunity_hunter"
   | "research_analyst"
+  | "competitor_intelligence"
   | "story_architect"
   | "hook_engineer"
   | "thumbnail_director"
@@ -12,7 +13,9 @@ export type AgentType =
   | "seo_specialist"
   | "publishing_manager"
   | "analytics_scientist"
-  | "knowledge_curator";
+  | "knowledge_curator"
+  | "voice_dna"
+  | "production_designer";
 
 export interface AgentMeta {
   type: AgentType;
@@ -279,3 +282,223 @@ export interface RunAgentResponse {
   durationMs: number;
   error?: string;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 2 — Real intelligence, production & publishing record types
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface AdvancedScoreBreakdown {
+  viralVelocity: number;      // rate of view growth on related videos
+  searchDemand: number;       // YouTube + Google search volume signals
+  competitionGap: number;     // how underserved the topic is (inverse of saturation)
+  monetizationPotential: number; // sponsor fit, audience value
+  expertiseAlignment: number; // match to creator's stored expertise
+  trendMomentum: number;      // acceleration of interest
+}
+
+export interface TrendSignalRecord {
+  id: string;
+  projectId?: string | null;
+  niche: string;
+  source: "youtube" | "google_trends" | "reddit" | "news" | "search" | "competitor";
+  title: string;
+  url: string;
+  snippet: string;
+  metric?: string | null;
+  metricValue?: number | null;
+  momentum?: "rising" | "peaking" | "stable" | "declining" | null;
+  capturedAt: string;
+}
+
+export interface CompetitorVideoRecord {
+  id: string;
+  projectId?: string | null;
+  niche: string;
+  url: string;
+  channel: string;
+  title: string;
+  views: number;
+  likes: number;
+  comments: number;
+  publishedAt?: string | null;
+  durationSec: number;
+  titleAnalysis: {
+    pattern: string;
+    hooks: string[];
+    curiosityTriggers: string[];
+    length: number;
+    sentiment: string;
+  };
+  thumbnailAnalysis: {
+    composition: string;
+    focal: string;
+    textOverlay: string;
+    emotion: string;
+    colorMood: string;
+    readability: number;
+  };
+  transcriptSummary: {
+    structure: string;
+    keyPoints: string[];
+    retentionPattern: string;
+    callsToAction: string[];
+  };
+  commentInsights: {
+    topQuestions: string[];
+    painPoints: string[];
+    praises: string[];
+    objections: string[];
+    audienceQuestions: string[];
+  };
+  winningPatterns: { pattern: string; whyItWorked: string; applicability: string }[];
+  performanceScore: number;
+  capturedAt: string;
+}
+
+export interface VoiceDNARecord {
+  id: string;
+  writingStyle: {
+    avgSentenceLength: string;
+    structure: string;
+    complexity: string;
+    register: string;
+  };
+  vocabulary: {
+    signaturePhrases: string[];
+    favoriteWords: string[];
+    jargon: string[];
+    avoidedTerms: string[];
+  };
+  storytellingPatterns: {
+    openings: string[];
+    callbacks: string[];
+    frameworks: string[];
+    transitions: string[];
+  };
+  humor: {
+    style: string;
+    frequency: string;
+    type: string;
+    examples: string[];
+  };
+  pacing: {
+    wordsPerMinute: string;
+    pausePattern: string;
+    sectionLength: string;
+    rhythm: string;
+  };
+  contentPreferences: {
+    preferredFormats: string[];
+    idealLength: string;
+    structurePreference: string;
+    depthLevel: string;
+  };
+  emotionalTone: {
+    defaultTone: string;
+    range: string;
+    shifts: string;
+    intensity: string;
+  };
+  uniquenessScore: number;
+  sourceSamples: { from: string; excerpt: string }[];
+  sampleCount: number;
+  createdAt: string;
+}
+
+export interface InterviewSessionRecord {
+  id: string;
+  projectId: string;
+  status: "active" | "completed";
+  topicsCovered: { topic: string; covered: boolean; depth: number }[];
+  questions: { id: string; question: string; intent: string; topic: string; asked: boolean }[];
+  extracted: {
+    type: "story" | "opinion" | "framework" | "example" | "expertise";
+    content: string;
+    themeTag: string;
+  }[];
+  turnCount: number;
+  startedAt: string;
+  updatedAt: string;
+}
+
+export interface ThumbnailBriefRecord {
+  id: string;
+  projectId: string;
+  concept: string;
+  visualLayout: {
+    composition: string;
+    focalSubject: string;
+    background: string;
+    depth: string;
+    ruleOfThirds: string;
+  };
+  textOverlay: {
+    text: string;
+    font: string;
+    size: string;
+    position: string;
+    contrast: string;
+  };
+  emotionalTriggers: { trigger: string; how: string }[];
+  colorMood: { palette: string[]; mood: string; contrast: string };
+  mobileReadability: number;
+  readabilityNotes: string;
+  aiPrompts: { variant: string; prompt: string; size: string; styleNotes: string }[];
+  generatedImageUrl?: string | null;
+  status: "brief" | "generating" | "generated" | "failed";
+  createdAt: string;
+}
+
+export interface ProductionSceneRecord {
+  id: string;
+  projectId: string;
+  sceneNumber: number;
+  timecode: string;
+  section: string;
+  visualDescription: string;
+  brollSuggestions: { description: string; source: string; duration: string }[];
+  motionGraphics: { type: string; description: string; trigger: string }[];
+  editorInstructions: string;
+  captions: { text: string; timing: string; style: string }[];
+  transitions: { from: string; to: string; type: string }[];
+  assetRequirements: { type: string; description: string; priority: string }[];
+  retentionNotes: string;
+  createdAt: string;
+}
+
+export interface YouTubeConnectionRecord {
+  id: string;
+  channelName?: string | null;
+  channelId?: string | null;
+  status: "disconnected" | "connected" | "expired" | "error";
+  connectedAt?: string | null;
+  lastError?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Intelligence scan result — the full output of a real opportunity scan
+export interface IntelligenceScanResult {
+  niche: string;
+  signals: TrendSignalRecord[];
+  competitorVideos: CompetitorVideoRecord[];
+  advancedScore: AdvancedScoreBreakdown;
+  overallScore: number;
+  momentum: "rising" | "peaking" | "stable" | "declining";
+  summary: string;
+  dataSources: { source: string; count: number; freshness: string }[];
+}
+
+// Holy Trifecta optimization candidate
+export interface TrifectaCandidate {
+  title: string;
+  thumbnailConcept: string;
+  openingHook: string;
+  expectationMatch: number; // 0-100 — how aligned title/thumbnail/hook are
+  curiosityGap: number; // 0-100
+  retentionPrediction: number; // 0-100
+  ctrPrediction: number; // 0-100
+  compositeScore: number;
+  rationale: string;
+}
+

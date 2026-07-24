@@ -94,3 +94,101 @@ export function safeJson<T = unknown>(text: string): T | null {
     }
   }
 }
+
+// ── Page Reader: extract clean content from any URL (YouTube pages, Reddit threads, articles) ──
+export interface PageContent {
+  title: string;
+  html: string;
+  text: string; // html stripped of tags
+  publishedTime?: string;
+  url: string;
+}
+
+export async function readPage(url: string): Promise<PageContent | null> {
+  try {
+    const client = await zai();
+    const res: any = await client.functions.invoke("page_reader", { url });
+    const data = res?.data;
+    if (!data) return null;
+    const html: string = data.html ?? "";
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, " ")
+      .trim();
+    return {
+      title: data.title ?? "",
+      html,
+      text: text.slice(0, 8000), // cap to keep LLM prompts manageable
+      publishedTime: data.publishedTime,
+      url: data.url ?? url,
+    };
+  } catch (err) {
+    console.error("[readPage] failed:", (err as Error)?.message);
+    return null;
+  }
+}
+
+// ── Vision Language Model: analyze images (thumbnail analysis, etc.) ──
+export async function visionChat(prompt: string, imageUrl: string): Promise<string> {
+  try {
+    const client = await zai();
+    const messages: any[] = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: imageUrl } },
+        ],
+      },
+    ];
+    const res = await client.chat.completions.create({
+      messages,
+      stream: false,
+      thinking: { type: "disabled" },
+    } as any);
+    return res.choices?.[0]?.message?.content ?? "";
+  } catch (err) {
+    console.error("[visionChat] failed:", (err as Error)?.message);
+    return "";
+  }
+}
+
+// ── Image Generation: produce AI images (thumbnail concepts, assets) ──
+export async function generateImage(
+  prompt: string,
+  size: "1024x1024" | "1024x1792" | "1792x1024" = "1024x1024",
+): Promise<string | null> {
+  try {
+    const client = await zai();
+    const res = await client.images.generations.create({
+      prompt,
+      size,
+    } as any);
+    const b64 = res.data?.[0]?.base64;
+    if (!b64) return null;
+    return `data:image/png;base64,${b64}`;
+  } catch (err) {
+    console.error("[generateImage] failed:", (err as Error)?.message);
+    return null;
+  }
+}
+
+// Run multiple web searches in parallel and merge results.
+export async function multiWebSearch(
+  queries: string[],
+  num = 6,
+): Promise<{ query: string; results: SearchResultItem[] }[]> {
+  const settled = await Promise.all(
+    queries.map(async (q) => ({ query: q, results: await webSearch(q, num) })),
+  );
+  return settled;
+}
+

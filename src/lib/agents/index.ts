@@ -1,4 +1,4 @@
-// Barrel + dispatcher for all 12 Maestro agents.
+// Barrel + dispatcher for all Maestro agents (Phase 2 — real intelligence engine).
 
 import type { AgentType, RunAgentResponse } from "@/lib/types";
 import { AGENT_MAP } from "@/lib/agents-registry";
@@ -7,27 +7,49 @@ import type { AgentCtx } from "./_helpers";
 import { recordRun } from "./_helpers";
 import { runOpportunityHunter } from "./opportunity-hunter";
 import { runResearchAnalyst } from "./research-analyst";
+import { runCompetitorIntelligence } from "./competitor-intelligence";
 import { runStoryArchitect } from "./story-architect";
 import { runScriptWriter } from "./script-writer";
 import { runFactChecker } from "./fact-checker";
 import { runHookEngineer } from "./hook-engineer";
 import { runThumbnailDirector } from "./thumbnail-director";
+import { runProductionDesigner } from "./production-designer";
 import { runSeoSpecialist } from "./seo-specialist";
 import { runPublishingManager } from "./publishing-manager";
 import { runAnalyticsScientist } from "./analytics-scientist";
 import { runKnowledgeCurator } from "./knowledge-curator";
+import { runVoiceDNA } from "./voice-dna";
 import { runChiefDirector } from "./chief-director";
 
-export { runOpportunityHunter, runResearchAnalyst, runStoryArchitect, runScriptWriter, runFactChecker, runHookEngineer, runThumbnailDirector, runSeoSpecialist, runPublishingManager, runAnalyticsScientist, runKnowledgeCurator, runChiefDirector };
+export {
+  runOpportunityHunter,
+  runResearchAnalyst,
+  runCompetitorIntelligence,
+  runStoryArchitect,
+  runScriptWriter,
+  runFactChecker,
+  runHookEngineer,
+  runThumbnailDirector,
+  runProductionDesigner,
+  runSeoSpecialist,
+  runPublishingManager,
+  runAnalyticsScientist,
+  runKnowledgeCurator,
+  runVoiceDNA,
+  runChiefDirector,
+};
 
 // Dispatcher: maps an AgentType + ctx to the right agent function, returning a RunAgentResponse.
 // Special inputs:
 //   - story_architect: ctx.input.stage must be "outline" | "expanded" (default "outline")
 //   - script_writer:   ctx.input.stage must be "draft" | "final" (default "draft")
 //   - chief_director:  ctx.input.action must be "interview_questions" | "advance" | "generate_assets" (default "advance")
-//   - publishing_manager: ctx.input.publishAt optional ISO string
+//   - publishing_manager: ctx.input.publishAt optional ISO string, ctx.input.connectChannel optional channel name
 //   - analytics_scientist: ctx.input.metrics optional override
 //   - opportunity_hunter: ctx.input.niche optional string (default "AI infrastructure")
+//   - competitor_intelligence: ctx.input.niche optional (defaults to project.niche), ctx.input.limit optional (default 4)
+//   - voice_dna: no input required
+//   - production_designer: no input required (uses project)
 export async function dispatchAgent(
   agentType: AgentType,
   ctx: AgentCtx,
@@ -44,6 +66,19 @@ export async function dispatchAgent(
         break;
       case "research_analyst":
         output = await runResearchAnalyst(ctx);
+        break;
+      case "competitor_intelligence":
+        output = await runCompetitorIntelligence({
+          projectId: ctx.projectId,
+          input: ctx.input,
+        });
+        break;
+      case "voice_dna":
+        output = await runVoiceDNA({ input: ctx.input });
+        break;
+      case "production_designer":
+        if (!ctx.projectId) throw new Error("projectId is required for production_designer");
+        output = await runProductionDesigner({ projectId: ctx.projectId });
         break;
       case "story_architect": {
         const stage = ((ctx.input?.stage as string) ?? "outline") as "outline" | "expanded";

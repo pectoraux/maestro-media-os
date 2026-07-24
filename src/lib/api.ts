@@ -19,6 +19,15 @@ import type {
   RunAgentResponse,
   ScriptRecord,
   TrifectaRecord,
+  TrendSignalRecord,
+  CompetitorVideoRecord,
+  VoiceDNARecord,
+  InterviewSessionRecord,
+  ThumbnailBriefRecord,
+  ProductionSceneRecord,
+  YouTubeConnectionRecord,
+  AdvancedScoreBreakdown,
+  TrifectaCandidate,
 } from "./types";
 
 export interface ProjectListItem {
@@ -54,6 +63,12 @@ export interface ProjectDetail {
   approvals: ApprovalGateRecord[];
   agentRuns: AgentRunRecord[];
   activities: ActivityRecord[];
+  // Phase 2 relations
+  competitorVideos: CompetitorVideoRecord[];
+  interviewSession: InterviewSessionRecord | null;
+  thumbnailBriefs: ThumbnailBriefRecord[];
+  productionScenes: ProductionSceneRecord[];
+  trendSignals: TrendSignalRecord[];
 }
 
 export interface AgentRosterItem {
@@ -211,5 +226,140 @@ export const api = {
   creator: () =>
     fetch("/api/creator", { cache: "no-store" }).then((r) =>
       jsonOrThrow<{ profile: CreatorProfileRecord | null }>(r),
+    ),
+
+  // ── Phase 2: Intelligence Engine ────────────────────────────────────────
+  scanIntelligence: (niche: string) =>
+    fetch("/api/intelligence/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ niche }),
+    }).then((r) =>
+      jsonOrThrow<{
+        niche: string;
+        signals: TrendSignalRecord[];
+        advancedScore: AdvancedScoreBreakdown;
+        overallScore: number;
+        momentum: string;
+        summary: string;
+        dataSources: { source: string; count: number; freshness: string }[];
+      }>(r),
+    ),
+
+  // ── Phase 2: Competitor Intelligence ────────────────────────────────────
+  listCompetitors: (niche?: string, projectId?: string) => {
+    const params = new URLSearchParams();
+    if (niche) params.set("niche", niche);
+    if (projectId) params.set("projectId", projectId);
+    return fetch(`/api/competitors?${params}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ competitors: CompetitorVideoRecord[] }>(r),
+    );
+  },
+  analyzeCompetitors: (body: { niche: string; projectId?: string; limit?: number }) =>
+    fetch("/api/competitors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => jsonOrThrow<{ competitors: CompetitorVideoRecord[] }>(r)),
+
+  // ── Phase 2: Conversational Interview ───────────────────────────────────
+  getInterview: (projectId: string) =>
+    fetch(`/api/interview/${projectId}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{
+        session: InterviewSessionRecord | null;
+        nextQuestion: { question: string; intent: string; topic: string; isFollowUp: boolean; sessionId: string } | null;
+      }>(r),
+    ),
+  interviewAction: (projectId: string, body: { action: "start" | "answer" | "complete"; question?: string; answer?: string; topic?: string }) =>
+    fetch(`/api/interview/${projectId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) =>
+      jsonOrThrow<{
+        session: InterviewSessionRecord;
+        extracted?: { type: string; content: string; themeTag: string }[];
+        nextQuestion?: { question: string; intent: string; topic: string; isFollowUp: boolean; sessionId: string } | null;
+      }>(r),
+    ),
+
+  // ── Phase 2: Voice DNA ──────────────────────────────────────────────────
+  getVoiceDNA: () =>
+    fetch("/api/voice-dna", { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ voiceDNA: VoiceDNARecord | null }>(r),
+    ),
+  extractVoiceDNA: () =>
+    fetch("/api/voice-dna", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    }).then((r) => jsonOrThrow<{ voiceDNA: VoiceDNARecord }>(r)),
+
+  // ── Phase 2: Production Scenes ──────────────────────────────────────────
+  getProductionScenes: (projectId: string) =>
+    fetch(`/api/production/${projectId}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ scenes: ProductionSceneRecord[] }>(r),
+    ),
+  generateProductionScenes: (projectId: string, targetDurationMin?: number) =>
+    fetch(`/api/production/${projectId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetDurationMin }),
+    }).then((r) => jsonOrThrow<{ scenes: ProductionSceneRecord[] }>(r)),
+
+  // ── Phase 2: Thumbnail Briefs ────────────────────────────────────────────
+  listThumbnails: (projectId: string) =>
+    fetch(`/api/thumbnails?projectId=${projectId}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ briefs: ThumbnailBriefRecord[] }>(r),
+    ),
+  generateThumbnailBrief: (projectId: string) =>
+    fetch("/api/thumbnails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId }),
+    }).then((r) => jsonOrThrow<{ brief: ThumbnailBriefRecord }>(r)),
+  generateThumbnailImage: (briefId: string) =>
+    fetch(`/api/thumbnails/${briefId}/generate`, { method: "POST" }).then((r) =>
+      jsonOrThrow<{ brief: ThumbnailBriefRecord; imageUrl: string }>(r),
+    ),
+
+  // ── Phase 2: Holy Trifecta optimizer ────────────────────────────────────
+  getTrifecta: (projectId: string) =>
+    fetch(`/api/trifecta/${projectId}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ trifecta: TrifectaRecord | null }>(r),
+    ),
+  optimizeTrifecta: (projectId: string) =>
+    fetch(`/api/trifecta/${projectId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    }).then((r) =>
+      jsonOrThrow<{ winner: TrifectaCandidate; candidates: TrifectaCandidate[]; voiceDNAUsed: boolean }>(r),
+    ),
+
+  // ── Phase 2: YouTube connection + publish ───────────────────────────────
+  getYouTubeConnection: () =>
+    fetch("/api/youtube", { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ connection: YouTubeConnectionRecord | null }>(r),
+    ),
+  connectYouTube: (channelName: string) =>
+    fetch("/api/youtube", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "connect", channelName }),
+    }).then((r) => jsonOrThrow<{ connection: YouTubeConnectionRecord }>(r)),
+  disconnectYouTube: () =>
+    fetch("/api/youtube", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "disconnect" }),
+    }).then((r) => jsonOrThrow<{ connection: YouTubeConnectionRecord }>(r)),
+  publishToYouTube: (projectId: string) =>
+    fetch("/api/youtube/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId }),
+    }).then((r) =>
+      jsonOrThrow<{ published: boolean; scheduledAt: string | null; note: string; payload: unknown }>(r),
     ),
 };

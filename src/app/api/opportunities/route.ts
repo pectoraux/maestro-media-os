@@ -40,8 +40,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const niche = (body.niche as string) || undefined;
-    const opp = await runOpportunityHunter({ input: niche ? { niche } : {} });
-    return Response.json({ opportunity: opp });
+    const result = await runOpportunityHunter({ input: niche ? { niche } : {} });
+    // Flatten so the opportunity record sits at the top level (frontend reads
+    // op.opportunityScore directly) — but also expose the wrapper fields.
+    return Response.json({
+      ...result.opportunity,
+      signals: result.signals,
+      advancedScore: result.advancedScore,
+      overallScore: result.overallScore,
+      summary: result.summary,
+      dataSources: result.dataSources,
+    });
   } catch (err) {
     return Response.json({ error: (err as Error).message }, { status: 500 });
   }

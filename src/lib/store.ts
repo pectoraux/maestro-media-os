@@ -10,7 +10,13 @@ export type ViewKey =
   | "agents"
   | "knowledge"
   | "analytics"
-  | "creator";
+  | "creator"
+  | "intelligence"
+  | "competitors"
+  | "interview"
+  | "voice-dna"
+  | "production"
+  | "publish";
 
 interface AppState {
   view: ViewKey;
