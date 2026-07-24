@@ -23,6 +23,11 @@ import {
   Fingerprint,
   Clapperboard,
   Send,
+  Boxes,
+  Store,
+  IdCard,
+  Plug,
+  Compass,
 } from "lucide-react";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { OpportunitiesView } from "@/components/views/opportunities-view";
@@ -38,11 +43,18 @@ import { InterviewView } from "@/components/views/interview-view";
 import { VoiceDnaView } from "@/components/views/voice-dna-view";
 import { ProductionView } from "@/components/views/production-view";
 import { PublishView } from "@/components/views/publish-view";
+import { MediaOSView } from "@/components/views/media-os-view";
+import { MarketplaceView } from "@/components/views/marketplace-view";
+import { IdentityView } from "@/components/views/identity-view";
+import { ConnectorsView } from "@/components/views/connectors-view";
+import { DirectorView } from "@/components/views/director-view";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 const NAV: { key: ViewKey; label: string; icon: React.ComponentType<{ className?: string }>; group: string }[] = [
   { key: "dashboard", label: "Command Center", icon: LayoutDashboard, group: "Overview" },
+  { key: "media-os", label: "Media OS", icon: Boxes, group: "Overview" },
+  { key: "director", label: "Director AI", icon: Compass, group: "Overview" },
   { key: "intelligence", label: "Intelligence Engine", icon: Satellite, group: "Overview" },
   { key: "opportunities", label: "Opportunity Discovery", icon: Radar, group: "Overview" },
   { key: "approvals", label: "Approval Queue", icon: ClipboardCheck, group: "Overview" },
@@ -52,6 +64,9 @@ const NAV: { key: ViewKey; label: string; icon: React.ComponentType<{ className?
   { key: "publish", label: "YouTube Publishing", icon: Send, group: "Production" },
   { key: "competitors", label: "Competitor Intelligence", icon: Crosshair, group: "Intelligence" },
   { key: "voice-dna", label: "Voice DNA", icon: Fingerprint, group: "Intelligence" },
+  { key: "identity", label: "Creator Identity", icon: IdCard, group: "Platform" },
+  { key: "marketplace", label: "Capability Marketplace", icon: Store, group: "Platform" },
+  { key: "connectors", label: "Output Connectors", icon: Plug, group: "Platform" },
   { key: "agents", label: "Agent Roster", icon: Bot, group: "Intelligence" },
   { key: "knowledge", label: "Knowledge Graph", icon: Network, group: "Intelligence" },
   { key: "analytics", label: "Performance & Learning", icon: BarChart3, group: "Intelligence" },
@@ -220,6 +235,11 @@ export default function Home() {
             {view === "interview" && <InterviewView />}
             {view === "production" && <ProductionView />}
             {view === "publish" && <PublishView />}
+            {view === "media-os" && <MediaOSView />}
+            {view === "director" && <DirectorView />}
+            {view === "marketplace" && <MarketplaceView />}
+            {view === "identity" && <IdentityView />}
+            {view === "connectors" && <ConnectorsView />}
             {view === "competitors" && <CompetitorsView />}
             {view === "voice-dna" && <VoiceDnaView />}
             {view === "agents" && <AgentsView />}

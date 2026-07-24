@@ -16,7 +16,12 @@ export type ViewKey =
   | "interview"
   | "voice-dna"
   | "production"
-  | "publish";
+  | "publish"
+  | "media-os"
+  | "marketplace"
+  | "identity"
+  | "connectors"
+  | "director";
 
 interface AppState {
   view: ViewKey;

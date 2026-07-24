@@ -28,6 +28,12 @@ import type {
   YouTubeConnectionRecord,
   AdvancedScoreBreakdown,
   TrifectaCandidate,
+  CapabilityRecord,
+  ExtensionRecord,
+  CreatorIdentityRecord,
+  OutputChannelRecord,
+  CompiledPlan,
+  ProductionPlanRecord,
 } from "./types";
 
 export interface ProjectListItem {
@@ -361,5 +367,69 @@ export const api = {
       body: JSON.stringify({ projectId }),
     }).then((r) =>
       jsonOrThrow<{ published: boolean; scheduledAt: string | null; note: string; payload: unknown }>(r),
+    ),
+
+  // ── Phase 3: Media OS ────────────────────────────────────────────────────
+  getOSOverview: () =>
+    fetch("/api/os/overview", { cache: "no-store" }).then((r) => jsonOrThrow<any>(r)),
+  listCapabilities: (category?: string) =>
+    fetch(`/api/os/capabilities${category ? `?category=${category}` : ""}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ capabilities: CapabilityRecord[] }>(r),
+    ),
+  listExtensions: (status?: string) =>
+    fetch(`/api/os/extensions${status ? `?status=${status}` : ""}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ extensions: ExtensionRecord[] }>(r),
+    ),
+  installExtension: (extId: string) =>
+    fetch("/api/os/extensions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "install", extId }),
+    }).then((r) => jsonOrThrow<{ extension: ExtensionRecord }>(r)),
+  disableExtension: (extId: string) =>
+    fetch("/api/os/extensions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "disable", extId }),
+    }).then((r) => jsonOrThrow<{ extension: ExtensionRecord }>(r)),
+  getIdentity: () =>
+    fetch("/api/os/identity", { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ identity: CreatorIdentityRecord | null }>(r),
+    ),
+  updateIdentity: (patch: Partial<CreatorIdentityRecord>) =>
+    fetch("/api/os/identity", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }).then((r) => jsonOrThrow<{ identity: CreatorIdentityRecord }>(r)),
+  listChannels: (status?: string) =>
+    fetch(`/api/os/connectors${status ? `?status=${status}` : ""}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ channels: OutputChannelRecord[] }>(r),
+    ),
+  connectChannel: (key: string, config?: Record<string, unknown>) =>
+    fetch("/api/os/connectors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "connect", key, config }),
+    }).then((r) => jsonOrThrow<{ channel: OutputChannelRecord }>(r)),
+  disconnectChannel: (key: string) =>
+    fetch("/api/os/connectors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "disconnect", key }),
+    }).then((r) => jsonOrThrow<{ channel: OutputChannelRecord }>(r)),
+  compilePlan: (body: { intent: string; targetChannel?: string; projectId?: string; preferences?: Record<string, unknown> }) =>
+    fetch("/api/os/director/plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => jsonOrThrow<{ plan: CompiledPlan; savedPlan: ProductionPlanRecord }>(r)),
+  listPlans: (projectId?: string) =>
+    fetch(`/api/os/director/plans${projectId ? `?projectId=${projectId}` : ""}`, { cache: "no-store" }).then((r) =>
+      jsonOrThrow<{ plans: ProductionPlanRecord[] }>(r),
+    ),
+  approvePlan: (id: string) =>
+    fetch(`/api/os/director/plans/${id}`, { method: "POST" }).then((r) =>
+      jsonOrThrow<{ plan: ProductionPlanRecord }>(r),
     ),
 };

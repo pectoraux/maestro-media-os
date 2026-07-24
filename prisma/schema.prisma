@@ -38,6 +38,7 @@ model Project {
   thumbnailBriefs  ThumbnailBrief[]
   productionScenes ProductionScene[]
   trendSignals     TrendSignal[]
+  productionPlans  ProductionPlan[]
 
   @@map("projects")
 }
@@ -426,3 +427,112 @@ model YouTubeConnection {
   @@map("youtube_connections")
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 3 — AI Media Operating System
+// Capability Registry · Extension Marketplace · Creator Identity Engine
+// Output Connectors · Director AI · Capability Graph
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Capability: a discrete, composable production capability
+// Everything the OS can do is a capability (research, script_writing, thumbnail_gen, etc.)
+model Capability {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g. "research.signals", "script.writing", "thumbnail.generation"
+  name        String
+  description String
+  category    String   // intelligence | creative | production | distribution | learning | identity | safety
+  inputs      String   // JSON: required input types
+  outputs     String   // JSON: produced output types
+  cost        String   @default("low") // low | medium | high
+  latency     String   @default("fast") // fast | medium | slow
+  quality     String   @default("good") // draft | good | high | production
+  source      String   @default("builtin") // builtin | extension:<extId>
+  extensionId String?  // null if builtin
+  agentType   String?  // the agent that fulfills this capability (if builtin)
+  status      String   @default("active") // active | disabled
+  createdAt   DateTime @default(now())
+
+  @@index([category])
+  @@map("capabilities")
+}
+
+// ── Extension: a bundle of capabilities + agents, declared via a manifest
+// Extensions are "installed" into the OS. Builtin extensions ship with the core.
+model Extension {
+  id          String   @id @default(cuid())
+  extId       String   @unique // manifest id, e.g. "core-intelligence", "voice-studio"
+  name        String
+  version     String
+  description String
+  publisher   String   @default("Maestro")
+  manifest    String   // JSON: full manifest (capabilities[], permissions[], agents[], requirements)
+  capabilities String  // JSON: array of capability keys provided
+  agents      String   // JSON: array of agent names declared
+  permissions String   // JSON: array of permission scopes
+  category    String   @default("studio") // core | studio | connector | pack
+  status      String   @default("installed") // available | installed | disabled
+  installedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+  @@map("extensions")
+}
+
+// ── Creator Identity Engine: the unified identity layer
+// Augments Voice DNA with beliefs, experiences, stories, frameworks, values.
+// Every generated script is grounded in this identity.
+model CreatorIdentity {
+  id                  String   @id @default(cuid())
+  mission             String?  // the creator's overarching mission
+  beliefs             String   // JSON: [{ belief, strength }]
+  experiences         String   // JSON: [{ area, years, notable }]
+  stories             String   // JSON: [{ title, summary, themeTag }]
+  frameworks          String   // JSON: [{ name, description }] — mental models the creator uses
+  analogies           String   // JSON: string[] — recurring analogies
+  humor               String   // JSON: { style, frequency, examples }
+  values              String   // JSON: string[] — non-negotiable values
+  vocabulary          String   // JSON: { signaturePhrases, favoriteWords, avoidedTerms }
+  audienceExpectations String  // JSON: { whatTheyComeFor, whatTheyTrust, whatTheyReject }
+  voiceDNAId          String?  // link to latest VoiceDNA
+  authenticityScore   Float    @default(0) // 0-1, how well-captured the identity is
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+
+  @@map("creator_identities")
+}
+
+// ── Output Channel: a distribution connector (YouTube is one of many)
+model OutputChannel {
+  id          String   @id @default(cuid())
+  key         String   @unique // youtube | tiktok | instagram | x | linkedin | substack | podcast | blog
+  name        String
+  icon        String   // lucide icon name
+  category    String   // video | short | social | text | audio
+  description String
+  status      String   @default("available") // available | connected | error
+  config      String   // JSON: connection config (tokens, handles, etc.)
+  connectedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("output_channels")
+}
+
+// ── Production Plan: a dynamic plan compiled by the Director AI
+// The Director takes a creative intent + discovers available capabilities → compiles a plan
+model ProductionPlan {
+  id          String   @id @default(cuid())
+  projectId   String?
+  intent      String   // the creative intent (natural language)
+  targetChannel String? // which output channel (youtube, tiktok, etc.)
+  steps       String   // JSON: [{ stepKey, capabilityKey, capabilityName, agentType, inputs, outputs, rationale, status }]
+  rationale   String   // why this plan (the Director's reasoning)
+  capabilitiesUsed String // JSON: array of capability keys
+  status      String   @default("draft") // draft | approved | running | completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("production_plans")
+}

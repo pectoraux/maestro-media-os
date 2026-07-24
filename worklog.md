@@ -494,3 +494,111 @@ Stage Summary:
 - Golden path verified: Intelligence scan → 6-factor score → create project → workspace → trifecta optimizer → thumbnail brief → production scenes → YouTube publish → analytics learning loop.
 - Screenshots: verify-phase2-dashboard.png.
 - Dev server running detached on :3000 (gateway :81).
+
+---
+Task ID: 4
+Agent: fullstack-developer (frontend — Phase 3 Media OS views)
+
+Task:
+Build the 5 Phase 3 Media OS client view components (`MediaOSView`, `MarketplaceView`, `IdentityView`, `ConnectorsView`, `DirectorView`) — overwriting existing stubs. These views surface the platform's evolution from a YouTube tool into a Media OS with a capability marketplace, creator identity, multi-channel distribution, and a dynamic plan-compiling Director AI. Only `/` route exists; views switch via Zustand.
+
+Work Log:
+- Read the contract: dashboard-view.tsx (style reference), api.ts (Phase 3 methods at end), types.ts (Phase 3 types at end), store.ts (ViewKey), status-badge.tsx, icon.tsx. Verified shadcn/ui exports (Card, Button, Badge, Tabs, Accordion, Dialog, Select, Checkbox, Skeleton, Collapsible, Textarea, Input). Verified globals.css utilities (`grid-bg`, `scroll-thin`, `text-gradient-emerald`, `animate-pulse-dot`) and color theme (emerald/amber/rose/teal/violet — no indigo/blue).
+- `src/components/views/media-os-view.tsx` — `MediaOSView`:
+  - Header (Cpu icon, "AI Media Operating System" pill, title "Media OS", subtitle).
+  - 4 StatCards from `api.getOSOverview()`: Total capabilities, Installed extensions (X/Y), Connected channels (X/Y), Identity authenticity (% with tone-based accent).
+  - **5-Layer Architecture vertical stack**: Intelligence Kernel → Capability Registry → Extension Marketplace → Experience Layer → Output Connectors. Each layer card has icon (Brain/Boxes/Store/Compass/Plug), L1–L5 mono badge, description, live count badge with Activity icon, and a gradient connecting line drawn absolutely from each card to the next. Container has `grid-bg`.
+  - **Capabilities by category** bar chart: custom horizontal bars (no recharts dependency to keep bundle lean), animated width transitions, emerald/amber/rose/teal/violet per category, legend grid.
+  - Director AI activity card (activePlans count + open button).
+  - **Authenticity principle callout**: highlighted card with mini ScoreRing + "AI should imitate YOU" text + button → Identity view.
+  - `useQuery({queryKey:["os-overview"], queryFn: api.getOSOverview, refetchInterval: 30000})`.
+- `src/components/views/marketplace-view.tsx` — `MarketplaceView`:
+  - Tabs (Extensions default / Capabilities).
+  - **Extensions tab**: installed extensions section first (emerald accent), available section second. Each card: name + version badge + publisher, category badge (core=emerald/studio=amber/connector=teal/pack=violet), description, capabilities chips (mono), agents chips (Bot icon, amber), permissions (Shield icon, muted), collapsible Manifest JSON viewer (pre with scroll-thin), status badge, action button (Install=emerald with Download icon + toast on success + invalidate extensions/capabilities/os-overview; Disable=ghost with Power icon).
+  - **Capabilities tab**: filter chips row (All/Intelligence/Creative/Production/Distribution/Learning), grid of capability cards. Each card: capability key (mono), name, category badge, description, **inputs → [capability] → outputs** flow visualization with ArrowRight icons, cost/latency/quality badges (emerald/amber/rose based on tier), source badge (builtin=muted, extension:xxx=amber), agent type label.
+  - `useMutation` for install/disable with `qc.invalidateQueries` on `["extensions"]`, `["capabilities"]`, `["os-overview"]`. Toasts via sonner.
+- `src/components/views/identity-view.tsx` — `IdentityView`:
+  - Empty state when no identity (Fingerprint icon, helpful copy).
+  - **Authenticity hero**: large custom SVG radial gauge (160×160, radius 70), color shifts emerald ≥80% / amber ≥50% / rose otherwise, dash animation with 1s transition. Label "Identity authenticity" + "% captured".
+  - **Mission card**: prominent card with `border-l-2 border-emerald-500/50 bg-emerald-500/5` blockquote, italic, large text. Plus a 4-stat grid (beliefs/experiences/stories/frameworks counts).
+  - **Principle banner**: centered card with gradient emerald→amber background, "AI should imitate YOU. Not imitate ANYONE." with text-gradient-emerald on YOU and rose on ANYONE.
+  - **9 dimension cards** in 2-col grid: Beliefs (with strength bars), Experiences (cards with years badge), Stories (cards with themeTag), Frameworks (violet cards), Analogies (chips), Humor (style/frequency stats + example quotes with amber left border), Values (emerald chips with ShieldCheck icon), Vocabulary (3 chip groups — signaturePhrases emerald, favoriteWords amber, avoidedTerms rose with Ban icon), Audience expectations (3 rows — whatTheyComeFor/whatTheyTrust emerald, whatTheyReject rose).
+  - `useQuery({queryKey:["identity"], queryFn: api.getIdentity})`.
+- `src/components/views/connectors-view.tsx` — `ConnectorsView`:
+  - Header (Plug icon, teal accent).
+  - **Connected channels summary**: emerald-tinted card showing count + connected channel chips with their Lucide icons (via `Icon` dynamic component using `channel.icon` field).
+  - **Channel grid**: cards for each channel. Each card: icon (using `Icon` with channel.icon), name, key (mono), category badge (video=emerald/short=amber/social=teal/text=violet/audio=rose), description, status badge, connectedAt timestamp (Radio icon, timeAgo), action button.
+    - Available channels: "Connect" emerald button → opens Dialog with Input for handle/name + Enter-to-submit + Connect/Cancel buttons → `api.connectChannel(key, {channelName})` + toast + invalidate channels/os-overview.
+    - Connected channels: "Disconnect" ghost button (rose hover) → `api.disconnectChannel(key)`.
+  - **Multi-channel vision callout**: teal-tinted card with grid-bg, "Produce once, distribute everywhere" headline, explanation of automatic repurposing, count widget showing connected channels.
+- `src/components/views/director-view.tsx` — `DirectorView` (Phase 3 centerpiece, ~950 lines):
+  - Header (Compass icon, "Phase 3 centerpiece" pill).
+  - **Intent compiler card**: emerald-bordered with `grid-bg`. Large Textarea (placeholder matches spec), target channel Select (loads from `api.listChannels()`, prefers connected channels, falls back to all), 3 preference Checkboxes (voice cloning / video generation / multi-channel distribution), Compile plan button (emerald + Sparkles icon). Hint about 15–25s duration. Error toast surface.
+  - **Compiling state** (rich, `AnimatePresence`-mounted): pulsing compass with `animate-ping` + `animate-pulse` rings + slow-spinning Compass icon (4s), intent echo box, 5-step progress list (Reading Creator Identity / Discovering capabilities / Selecting optimal chain / Grounding in identity / Compiling steps). Each step transitions pending→active (Loader2 spin)→done (Check) over 3.5s intervals via `useEffect`+`setInterval`. Amber border when active, emerald when done.
+  - **Compiled plan display** (AnimatePresence-mounted):
+    - Header card with CircleCheck icon, step/capability counts, target channel (mono), identity-grounded badge (emerald with ShieldCheck), status badge (StatusBadge component).
+    - **Director's rationale**: emerald-tinted card with Brain icon and the plan rationale text.
+    - **Extensions required**: amber chips with Puzzle icon (only shown if non-empty).
+    - **Plan steps timeline**: vertical timeline with connecting gradient lines. Each step card: step number badge (emerald mono), stepLabel, agentType badge (Bot icon, amber), requiresApproval badge (amber, AlertTriangle icon), step status badge, capability key→name flow, **inputs → [capability] → outputs** flow visualization, step rationale with Eye icon ("Why this here:") — the explainability element.
+    - **Capabilities considered** (collapsible, transparency): CircleDot icon header, shows capabilities that were considered but NOT used, with the rejection reason (italic). This addresses the "why didn't you use X?" question.
+    - **Actions card**: Approve plan (emerald, calls `api.approvePlan(savedPlan.id)`, toast) + Recompile (ghost, calls onRecompile).
+  - **Recent plans list** (from `api.listPlans()`): each plan is a Collapsible row showing truncated intent, target channel, step count, timeAgo, status badge. Expandable to show full rationale + steps list + capabilities used chips.
+  - `useMutation` for compilePlan (rich loading) and approvePlan. `useQuery` for listPlans and listChannels.
+- Quality: all components `"use client"`; mobile-first responsive (375px tested via class sm:/lg:); framer-motion entrance animations matching dashboard pattern (`initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:0.35, delay}}`); `cn()` everywhere; `scroll-thin` on all long lists with `max-h-*`; skeletons for all loading states; toast notifications for all mutations; NO indigo/blue; emerald primary, amber secondary, rose danger, violet/teal sparingly.
+- Verification: `bun run lint` → exit 0 (clean). `npx tsc --noEmit` → no errors in the 5 view files (pre-existing errors in other files untouched). `tail dev.log` → no compile errors; all Media OS API endpoints respond with real data (19 capabilities, 7 extensions/3 installed, 8 channels/1 connected, 82% identity authenticity, real identity with mission+beliefs, real extensions list).
+- Files written (only the 5 view files; no other files modified):
+  - `src/components/views/media-os-view.tsx` (583 lines)
+  - `src/components/views/marketplace-view.tsx` (582 lines)
+  - `src/components/views/identity-view.tsx` (664 lines)
+  - `src/components/views/connectors-view.tsx` (428 lines)
+  - `src/components/views/director-view.tsx` (952 lines)
+  - Total: 3,209 lines.
+
+Stage Summary:
+Phase 3 Media OS frontend is live. The five views share the dashboard's visual language (dark `bg-card/40` cards, `border-border/60`, emerald/amber/rose accents, `font-mono` for metrics, `grid-bg` utility on hero/callout containers, framer-motion entrance, `StatusBadge`, dynamic `Icon`, `scroll-thin` scrollbars, ScoreRing/radial-gauge pattern). The Director view is the centerpiece — it proves the OS orchestrates capabilities rather than running hardcoded agents: the user gives an intent, watches a 5-step discovery+grounding animation, and receives an explainable plan with per-step rationale, identity-grounding badge, and a transparency panel showing what was considered and rejected. Approve/Recompile actions close the loop. All Phase 3 API methods from `api.ts` are wired up with proper `useQuery`/`useMutation` + cache invalidation. Downstream agents: the worklog is the authoritative record; agent-ctx/4-frontend-views.md is a brief pointer.
+
+---
+Task ID: 1-5 (Phase 3 — Media OS)
+Agent: main
+Task: Revert Phase 3 (Creative Control Plane) and build the AI Media Operating System with capability marketplace
+
+Work Log:
+- Reverted commit f1cf6fb (Phase 3 Constitution/Workflow/CreativeAsset) via `git reset --hard b4a114b`. Removed src/lib/kernel/. Re-synced DB. Verified 23 models (Phase 1+2 only), 15 views, lint clean.
+- Schema: added 5 new models — Capability (key, name, category, inputs, outputs, cost, latency, quality, source, agentType), Extension (extId, manifest, capabilities, agents, permissions, status), CreatorIdentity (mission, beliefs, experiences, stories, frameworks, analogies, humor, values, vocabulary, audienceExpectations, authenticityScore), OutputChannel (key, name, icon, category, status, config), ProductionPlan (intent, targetChannel, steps, rationale, capabilitiesUsed, status). Added productionPlans relation to Project. db:push OK (28 models total).
+- Types: appended Phase 3 types — CapabilityRecord, ExtensionRecord, CreatorIdentityRecord, OutputChannelRecord, ProductionPlanStep, ProductionPlanRecord, CompiledPlan, MediaOSOverview.
+- Seed (seed-os.ts): 19 builtin capabilities (intelligence/creative/production/distribution/learning categories), 7 extensions (3 core installed: Core Intelligence, Creative Studio, Production Suite; 4 available: Voice Studio, Realistic Video Studio, AI Editing Suite, Podcast Toolkit), 8 output channels (YouTube connected; Shorts, TikTok, Instagram, X, LinkedIn, Substack, Podcast available), 1 creator identity (mission, 4 beliefs, 3 experiences, 2 stories, 3 frameworks, 3 analogies, humor, 4 values, vocabulary, audience expectations; authenticity 0.82). Ran successfully.
+- Kernel (src/lib/os/):
+  - capabilities.ts: listCapabilities, getCapabilityByKey, discoverByOutput, discoverByInput, registerCapability.
+  - extensions.ts: listExtensions, installExtension (registers capabilities + marks installed), disableExtension, isCapabilityAvailable (checks extension is installed).
+  - identity.ts: getIdentity, updateIdentity, recomputeAuthenticity, getIdentityContext (compiles identity into a grounding prompt for the Director — "AI should imitate THIS creator, not a generic model").
+  - connectors.ts: listChannels, connectChannel, disconnectChannel, getConnectedChannels.
+  - director.ts (centerpiece): compilePlan(input) — takes a creative intent, loads the identity context + available capabilities + connected channels, calls llmJson with a prompt that forces the Director to SELECT from available capabilities (never invent), produces an explainable plan with per-step rationale + capabilities considered + extensions required + identityGrounded flag. savePlan, listPlans, getPlan, approvePlan, getOverview.
+- API routes: /api/os/overview, /api/os/capabilities, /api/os/extensions (GET/POST install+disable), /api/os/identity (GET/PUT/PATCH), /api/os/connectors (GET/POST connect+disconnect), /api/os/director/plan (POST compile), /api/os/director/plans (GET list), /api/os/director/plans/[id] (GET/POST approve). All runtime=nodejs.
+- API client: extended src/lib/api.ts with all OS methods + type imports.
+- Store: added 5 new ViewKeys (media-os, marketplace, identity, connectors, director).
+- page.tsx: added 5 nav entries — Media OS + Director AI in Overview group; Creator Identity + Capability Marketplace + Output Connectors in new "Platform" group. 19 total nav items. Wired all views.
+- Dispatched subagent to build 5 frontend views (3,209 lines total):
+  - media-os-view: 5-layer architecture stack, overview stats, capabilities-by-category chart, authenticity principle.
+  - marketplace-view: Extensions tab (install/disable with manifest viewer) + Capabilities tab (filterable, input→capability→output flow).
+  - identity-view: radial authenticity gauge, mission blockquote, 9 dimension cards, "AI should imitate YOU" principle banner.
+  - connectors-view: channel grid with connect Dialog, connected summary, multi-channel vision callout.
+  - director-view (centerpiece): intent compiler + 5-step compiling animation + explainable plan timeline with per-step rationale + capabilities-considered transparency + approve/recompile actions + recent plans list.
+
+Agent Browser self-verification:
+- All 19 nav views render without errors.
+- Media OS: shows all 5 layers (Intelligence Kernel, Capability Registry, Extension Marketplace, Experience Layer, Output Connectors), 19 capabilities, 3/7 extensions, 1/8 channels, 82% authenticity.
+- Director AI: compiled a REAL 13-step plan for "Make a 10-minute video explaining why most teams don't need a vector database" — the Director dynamically selected 13 capabilities, grounded the plan in the creator identity (rationale: "To ensure the script matches the creator's distinctive voice - dry humor, rigorous analysis, and signature phrases"), included per-step rationale, approval gates, and capabilities-considered transparency.
+- Marketplace: showed 3 installed + 4 available extensions. Tested install flow — installed Voice Studio → count updated to 4, button changed to "Disable", toast appeared, API confirmed 4 installed.
+- Identity: renders authenticity gauge + all dimensions.
+- Connectors: renders channel grid with YouTube connected + 7 available.
+- Footer: sticky at bottom (900px). Mobile: 390px no overflow. Lint: clean. Dev log: no errors.
+- Screenshots: verify-phase3-dashboard.png, verify-phase3-director.png, verify-phase3-media-os.png.
+
+Stage Summary:
+- Maestro is now an AI Media Operating System, not a YouTube tool.
+- 5-layer architecture: Intelligence Kernel → Capability Registry → Extension Marketplace → Experience Layer → Output Connectors.
+- Everything is a capability (19 registered). Extensions declare manifests and can be installed/disabled (7 total, 3 core + 4 marketplace).
+- The Director AI dynamically compiles production plans by discovering available capabilities — no hardcoded pipelines. Plans are explainable (per-step rationale), identity-grounded, and transparent (capabilities-considered).
+- YouTube is one of 8 output channels. The OS can produce for TikTok, Instagram, X, LinkedIn, Substack, Podcasts, Shorts.
+- Creator Identity Engine unifies beliefs, experiences, stories, frameworks, values, vocabulary — "AI should imitate YOU, not imitate ANYONE."
+- The same operating system can expand to podcasts, newsletters, courses, and other media formats without changing the core architecture — new channels are just connectors, new AI tools are just extensions.

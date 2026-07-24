@@ -502,3 +502,125 @@ export interface TrifectaCandidate {
   rationale: string;
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 3 — AI Media Operating System types
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface CapabilityRecord {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  category: "intelligence" | "creative" | "production" | "distribution" | "learning" | "identity" | "safety";
+  inputs: Record<string, string>;
+  outputs: Record<string, string>;
+  cost: "low" | "medium" | "high";
+  latency: "fast" | "medium" | "slow";
+  quality: "draft" | "good" | "high" | "production";
+  source: string; // builtin | extension:<extId>
+  extensionId?: string | null;
+  agentType?: string | null;
+  status: "active" | "disabled";
+  createdAt: string;
+}
+
+export interface ExtensionRecord {
+  id: string;
+  extId: string;
+  name: string;
+  version: string;
+  description: string;
+  publisher: string;
+  capabilities: string[];
+  agents: string[];
+  permissions: string[];
+  category: "core" | "studio" | "connector" | "pack";
+  status: "available" | "installed" | "disabled";
+  installedAt?: string | null;
+  manifest: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface CreatorIdentityRecord {
+  id: string;
+  mission?: string | null;
+  beliefs: { belief: string; strength: number }[];
+  experiences: { area: string; years: number; notable: string }[];
+  stories: { title: string; summary: string; themeTag: string }[];
+  frameworks: { name: string; description: string }[];
+  analogies: string[];
+  humor: { style: string; frequency: string; examples: string[] };
+  values: string[];
+  vocabulary: { signaturePhrases: string[]; favoriteWords: string[]; avoidedTerms: string[] };
+  audienceExpectations: { whatTheyComeFor: string; whatTheyTrust: string; whatTheyReject: string };
+  voiceDNAId?: string | null;
+  authenticityScore: number;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface OutputChannelRecord {
+  id: string;
+  key: string;
+  name: string;
+  icon: string;
+  category: "video" | "short" | "social" | "text" | "audio";
+  description: string;
+  status: "available" | "connected" | "error";
+  config: Record<string, unknown>;
+  connectedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductionPlanStep {
+  stepKey: string;
+  stepLabel: string;
+  capabilityKey: string;
+  capabilityName: string;
+  agentType?: string | null;
+  inputs: string[];
+  outputs: string[];
+  rationale: string;
+  requiresApproval: boolean;
+  status: "pending" | "running" | "completed" | "skipped";
+}
+
+export interface ProductionPlanRecord {
+  id: string;
+  projectId?: string | null;
+  intent: string;
+  targetChannel?: string | null;
+  steps: ProductionPlanStep[];
+  rationale: string;
+  capabilitiesUsed: string[];
+  status: "draft" | "approved" | "running" | "completed";
+  createdAt: string;
+  updatedAt: string;
+}
+
+// The Director's compiled plan (before persistence)
+export interface CompiledPlan {
+  intent: string;
+  targetChannel: string;
+  steps: ProductionPlanStep[];
+  rationale: string;
+  capabilitiesUsed: string[];
+  capabilitiesConsidered: { key: string; name: string; used: boolean; reason: string }[];
+  identityGrounded: boolean;
+  extensionsRequired: string[];
+}
+
+// Media OS overview (for the kernel dashboard)
+export interface MediaOSOverview {
+  layers: { name: string; description: string; count: number; status: string }[];
+  capabilityCount: number;
+  extensionCount: number;
+  installedExtensionCount: number;
+  channelCount: number;
+  connectedChannelCount: number;
+  identityAuthenticity: number;
+  capabilitiesByCategory: { category: string; count: number }[];
+  activePlans: number;
+}
