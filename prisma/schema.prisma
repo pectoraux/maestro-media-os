@@ -1,0 +1,276 @@
+// Maestro — YouTube Intelligence & Production Operating System
+// Persistent knowledge graph + production pipeline state
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Core entity: a content production project (one video) ──────────────────────
+model Project {
+  id           String   @id @default(cuid())
+  title        String
+  niche        String
+  status       String   @default("discovery") // discovery | research | scripting | packaging | production | publish | live | archived
+  stage        String   @default("opportunity") // opportunity | dossier | interview | outline | expanded | draft | factcheck | final | trifecta | blueprint | assets | metadata | scheduled | published
+  brief        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  opportunity     Opportunity?
+  dossier         ResearchDossier?
+  interviews      CreatorInterview[]
+  scripts         Script[]
+  trifecta        HolyTrifecta?
+  blueprint       EditorBlueprint?
+  assets          Asset[]
+  publishMetadata PublishMetadata?
+  metrics         PerformanceMetric[]
+  agentRuns       AgentRun[]
+  approvals       ApprovalGate[]
+  activities      ActivityLog[]
+
+  @@map("projects")
+}
+
+// ── Opportunity Hunter output ──────────────────────────────────────────────────
+model Opportunity {
+  id             String   @id @default(cuid())
+  projectId      String   @unique
+  title          String
+  niche          String
+  angle          String
+  opportunityScore Float
+  scoreBreakdown String   // JSON: { demand, competition, freshness, audienceFit, monetization, ... }
+  sources        String   // JSON array of source refs
+  competitors    String   // JSON array
+  audienceSignals String  // JSON
+  trends         String   // JSON
+  confidence     String   @default("medium") // low | medium | high
+  status         String   @default("new") // new | accepted | rejected | archived
+  createdAt      DateTime @default(now())
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("opportunities")
+}
+
+// ── Research Analyst dossier ───────────────────────────────────────────────────
+model ResearchDossier {
+  id              String   @id @default(cuid())
+  projectId       String   @unique
+  summary         String
+  marketData      String   // JSON
+  competitors     String   // JSON
+  audienceInsights String  // JSON
+  news            String   // JSON
+  references      String   // JSON
+  knowledgeGaps   String   // JSON
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("research_dossiers")
+}
+
+// ── Creator interview (human expertise capture) ───────────────────────────────
+model CreatorInterview {
+  id        String   @id @default(cuid())
+  projectId String
+  question  String
+  answer    String
+  themeTag  String?
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("creator_interviews")
+}
+
+// ── Creator voice & style profile (learned, singleton-ish) ────────────────────
+model CreatorProfile {
+  id                String   @id @default(cuid())
+  voiceProfile      String   // JSON: tone, pacing, vocabulary, signatures
+  styleGuidelines   String   // JSON
+  expertise         String   // JSON array
+  recurringThemes   String   // JSON
+  toneSamples       String   // JSON
+  distinctivenessScore Float @default(0)
+  updatedAt         DateTime @updatedAt
+
+  @@map("creator_profile")
+}
+
+// ── Script versions (iterative stages) ────────────────────────────────────────
+model Script {
+  id        String   @id @default(cuid())
+  projectId String
+  stage     String   // outline | expanded_outline | draft | final
+  content   String
+  version   Int      @default(1)
+  notes     String?
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("scripts")
+}
+
+// ── Holy Trifecta: title + thumbnail + hook (unified) ─────────────────────────
+model HolyTrifecta {
+  id                String   @id @default(cuid())
+  projectId         String   @unique
+  title             String
+  thumbnailStrategy String   // JSON: concept, text overlay, focal, color, emotion
+  openingHook       String
+  rationale         String
+  variants          String   // JSON array of alternates
+  expectationMatch  String   // how title/thumbnail/hook align
+  createdAt         DateTime @default(now())
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("holy_trifectas")
+}
+
+// ── Editor blueprint (timestamped production plan) ────────────────────────────
+model EditorBlueprint {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  segments  String   // JSON: [{ timecode, section, broll, graphics, captions, transitions, retentionNotes }]
+  totalDuration String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("editor_blueprints")
+}
+
+// ── Supporting assets ─────────────────────────────────────────────────────────
+model Asset {
+  id        String   @id @default(cuid())
+  projectId String
+  type      String   // diagram | infographic | social | repurposed_short | repurposed_blog | thumbnail_concept
+  title     String
+  prompt    String
+  status    String   @default("pending") // pending | generating | ready | failed
+  url       String?
+  spec      String   // JSON
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("assets")
+}
+
+// ── Upload metadata ───────────────────────────────────────────────────────────
+model PublishMetadata {
+  id            String   @id @default(cuid())
+  projectId     String   @unique
+  description   String
+  chapters      String   // JSON
+  tags          String   // JSON
+  pinnedComment String?
+  playlist      String?
+  publishAt     DateTime?
+  endScreen     String?  // JSON
+  createdAt     DateTime @default(now())
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("publish_metadata")
+}
+
+// ── Post-publication performance ──────────────────────────────────────────────
+model PerformanceMetric {
+  id              String   @id @default(cuid())
+  projectId       String
+  ctr             Float
+  retention       Float
+  avgViewDuration Float
+  impressions     Int
+  views           Int
+  trafficSources  String   // JSON
+  revenue         Float
+  engagement      Float
+  lessons         String   // JSON: learned patterns
+  recordedAt      DateTime @default(now())
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("performance_metrics")
+}
+
+// ── Agent execution log ───────────────────────────────────────────────────────
+model AgentRun {
+  id         String   @id @default(cuid())
+  projectId  String?
+  agentType  String
+  status     String   @default("running") // running | succeeded | failed
+  input      String   // JSON
+  output     String   // JSON
+  tokens     Int      @default(0)
+  durationMs Int      @default(0)
+  error      String?
+  createdAt  DateTime @default(now())
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([agentType])
+  @@map("agent_runs")
+}
+
+// ── Human-in-the-loop approval gates ──────────────────────────────────────────
+model ApprovalGate {
+  id        String   @id @default(cuid())
+  projectId String
+  stage     String   // opportunity | dossier | outline | draft | final | trifecta | blueprint | metadata | publish
+  agentType String
+  payload   String   // JSON summary of what's being approved
+  status    String   @default("pending") // pending | approved | rejected | revised
+  feedback  String?
+  decidedAt DateTime?
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("approval_gates")
+}
+
+// ── Knowledge graph (persistent intelligence) ─────────────────────────────────
+model KnowledgeNode {
+  id        String   @id @default(cuid())
+  type      String   // audience_insight | creator_voice | research | editorial | history | pattern | competitor
+  label     String
+  content   String
+  weight    Float    @default(1)
+  projectId String?
+  createdAt DateTime @default(now())
+
+  edgesFrom KnowledgeEdge[] @relation("KnowledgeEdgeSource")
+  edgesTo   KnowledgeEdge[] @relation("KnowledgeEdgeTarget")
+
+  @@index([type])
+  @@map("knowledge_nodes")
+}
+
+model KnowledgeEdge {
+  id       String @id @default(cuid())
+  sourceId String
+  targetId String
+  relation String
+  weight   Float  @default(1)
+  source   KnowledgeNode @relation("KnowledgeEdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target   KnowledgeNode @relation("KnowledgeEdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@map("knowledge_edges")
+}
+
+// ── Activity log (system feed) ────────────────────────────────────────────────
+model ActivityLog {
+  id        String   @id @default(cuid())
+  projectId String?
+  type      String   // agent | approval | system | creator
+  message   String
+  meta      String   // JSON
+  createdAt DateTime @default(now())
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@map("activity_logs")
+}

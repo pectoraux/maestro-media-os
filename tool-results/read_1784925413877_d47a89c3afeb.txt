@@ -1,0 +1,1409 @@
+     1→"use client";
+     2→
+     3→import { useMemo, useState } from "react";
+     4→import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+     5→import { api, type ProjectDetail } from "@/lib/api";
+     6→import { useApp } from "@/lib/store";
+     7→import { AGENT_MAP, PIPELINE, STAGE_INDEX } from "@/lib/agents-registry";
+     8→import { Card } from "@/components/ui/card";
+     9→import { Button } from "@/components/ui/button";
+    10→import { Badge } from "@/components/ui/badge";
+    11→import { Input } from "@/components/ui/input";
+    12→import { Textarea } from "@/components/ui/textarea";
+    13→import { Separator } from "@/components/ui/separator";
+    14→import {
+    15→  Select,
+    16→  SelectContent,
+    17→  SelectItem,
+    18→  SelectTrigger,
+    19→  SelectValue,
+    20→} from "@/components/ui/select";
+    21→import {
+    22→  Accordion,
+    23→  AccordionContent,
+    24→  AccordionItem,
+    25→  AccordionTrigger,
+    26→} from "@/components/ui/accordion";
+    27→import { StatusBadge } from "@/components/status-badge";
+    28→import { Icon } from "@/components/icon";
+    29→import { toast } from "sonner";
+    30→import { motion } from "framer-motion";
+    31→import { cn } from "@/lib/utils";
+    32→import {
+    33→  ArrowLeft,
+    34→  Loader2,
+    35→  Check,
+    36→  X,
+    37→  PenLine,
+    38→  Sparkles,
+    39→  Lock,
+    40→  Clock,
+    41→  Play,
+    42→  ChevronRight,
+    43→  Plus,
+    44→  Quote,
+    45→  FileText,
+    46→  Zap,
+    47→  Image as ImageIcon,
+    48→  Send,
+    49→  BarChart3,
+    50→  FolderKanban,
+    51→  ListVideo,
+    52→  Hash,
+    53→  MessageSquare,
+    54→  Calendar,
+    55→  LayoutDashboard,
+    56→  Activity as ActivityIcon,
+    57→  Bot,
+    58→} from "lucide-react";
+    59→import type {
+    60→  ApprovalGateRecord,
+    61→  DossierRecord,
+    62→  TrifectaRecord,
+    63→  BlueprintRecord,
+    64→  ScriptRecord,
+    65→  OpportunityRecord,
+    66→  PublishMetadataRecord,
+    67→  PerformanceRecord,
+    68→  AssetRecord,
+    69→} from "@/lib/types";
+    70→
+    71→// ── helpers ──────────────────────────────────────────────────────────────
+    72→function timeAgo(iso: string): string {
+    73→  const d = new Date(iso).getTime();
+    74→  const diff = Date.now() - d;
+    75→  const m = Math.floor(diff / 60000);
+    76→  if (m < 1) return "just now";
+    77→  if (m < 60) return `${m}m ago`;
+    78→  const h = Math.floor(m / 60);
+    79→  if (h < 24) return `${h}h ago`;
+    80→  const days = Math.floor(h / 24);
+    81→  return `${days}d ago`;
+    82→}
+    83→
+    84→function formatViews(v: number): string {
+    85→  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + "M";
+    86→  if (v >= 1_000) return Math.round(v / 1_000) + "K";
+    87→  return String(v);
+    88→}
+    89→
+    90→function formatMoney(v: number): string {
+    91→  if (v >= 1000) return "$" + (v / 1000).toFixed(1) + "K";
+    92→  return "$" + Math.round(v).toLocaleString();
+    93→}
+    94→
+    95→function formatDuration(ms: number): string {
+    96→  return (Math.round(ms / 100) / 10).toFixed(1) + "s";
+    97→}
+    98→
+    99→function metricColor(v: number): string {
+   100→  if (v >= 80) return "text-emerald-400";
+   101→  if (v >= 65) return "text-amber-400";
+   102→  return "text-rose-400";
+   103→}
+   104→
+   105→// ── Stage stepper ────────────────────────────────────────────────────────
+   106→function StageStepper({ currentStage }: { currentStage: string }) {
+   107→  const currentIdx = STAGE_INDEX[currentStage] ?? 0;
+   108→  return (
+   109→    <div className="flex flex-wrap items-start gap-x-1 gap-y-3 rounded-xl border border-border/60 bg-card/30 p-3">
+   110→      {PIPELINE.map((stage, idx) => {
+   111→        const isPast = idx < currentIdx;
+   112→        const isCurrent = idx === currentIdx;
+   113→        const isFuture = idx > currentIdx;
+   114→        return (
+   115→          <div key={stage.key} className="flex items-start">
+   116→            <div className="flex w-14 flex-col items-center text-center sm:w-16">
+   117→              <div
+   118→                className={cn(
+   119→                  "relative flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-mono font-semibold transition-all",
+   120→                  isPast && "border-emerald-500/40 bg-emerald-500/20 text-emerald-300",
+   121→                  isCurrent && "border-emerald-400 bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-500/30",
+   122→                  isFuture && "border-border/60 bg-background/40 text-muted-foreground",
+   123→                  isCurrent && "animate-pulse-dot",
+   124→                )}
+   125→              >
+   126→                {idx + 1}
+   127→                {stage.requiresApproval && (
+   128→                  <Lock className="absolute -right-1 -top-1 h-2.5 w-2.5 text-amber-400" />
+   129→                )}
+   130→              </div>
+   131→              <span
+   132→                className={cn(
+   133→                  "mt-1.5 block text-[9px] leading-tight sm:text-[10px]",
+   134→                  isCurrent ? "font-medium text-foreground" : "text-muted-foreground",
+   135→                )}
+   136→              >
+   137→                {stage.label}
+   138→              </span>
+   139→            </div>
+   140→            {idx < PIPELINE.length - 1 && (
+   141→              <div
+   142→                className={cn(
+   143→                  "mt-3.5 h-px w-3 sm:w-5",
+   144→                  isPast ? "bg-emerald-500/40" : "bg-border/50",
+   145→                )}
+   146→              />
+   147→            )}
+   148→          </div>
+   149→        );
+   150→      })}
+   151→    </div>
+   152→  );
+   153→}
+   154→
+   155→// ── Approval card ────────────────────────────────────────────────────────
+   156→function ApprovalCard({ gate, projectId }: { gate: ApprovalGateRecord; projectId: string }) {
+   157→  const qc = useQueryClient();
+   158→  const [showRevision, setShowRevision] = useState(false);
+   159→  const [feedback, setFeedback] = useState("");
+   160→  const [pending, setPending] = useState<"approve" | "revise" | "reject" | null>(null);
+   161→  const agent = AGENT_MAP[gate.agentType];
+   162→
+   163→  const decide = useMutation({
+   164→    mutationFn: (vars: { decision: "approved" | "rejected" | "revised"; feedback?: string }) =>
+   165→      api.decideApproval(gate.id, vars.decision, vars.feedback),
+   166→    onMutate: (vars) => {
+   167→      setPending(vars.decision === "approved" ? "approve" : vars.decision === "rejected" ? "reject" : "revise");
+   168→    },
+   169→    onSuccess: (_data, vars) => {
+   170→      const msg =
+   171→        vars.decision === "approved"
+   172→          ? "Approved · advancing pipeline"
+   173→          : vars.decision === "rejected"
+   174→            ? "Gate rejected"
+   175→            : "Revision requested";
+   176→      toast.success(msg);
+   177→      qc.invalidateQueries({ queryKey: ["project", projectId] });
+   178→      qc.invalidateQueries({ queryKey: ["approvals"] });
+   179→      qc.invalidateQueries({ queryKey: ["dashboard"] });
+   180→      setShowRevision(false);
+   181→      setFeedback("");
+   182→      setPending(null);
+   183→    },
+   184→    onError: (e: Error) => {
+   185→      toast.error(e.message || "Decision failed");
+   186→      setPending(null);
+   187→    },
+   188→  });
+   189→
+   190→  return (
+   191→    <motion.div
+   192→      initial={{ opacity: 0, y: 8 }}
+   193→      animate={{ opacity: 1, y: 0 }}
+   194→      transition={{ duration: 0.3 }}
+   195→    >
+   196→      <Card className="overflow-hidden border-amber-500/40 bg-amber-500/[0.06]">
+   197→        <div className="border-b border-amber-500/20 px-5 py-3">
+   198→          <div className="flex flex-wrap items-center gap-2">
+   199→            {agent && <Icon name={agent.icon} className={cn("h-4 w-4", agent.color)} />}
+   200→            <span className="text-xs font-medium text-foreground">{agent?.name ?? gate.agentType}</span>
+   201→            <span className="text-xs text-muted-foreground">· {agent?.role}</span>
+   202→            <Badge variant="outline" className="ml-auto border-amber-500/40 bg-amber-500/10 text-[10px] capitalize text-amber-300">
+   203→              <Lock className="mr-1 h-2.5 w-2.5" /> Approval · {gate.stage}
+   204→            </Badge>
+   205→            <StatusBadge status={gate.status} />
+   206→          </div>
+   207→        </div>
+   208→        <div className="space-y-4 p-5">
+   209→          <div>
+   210→            <h3 className="text-base font-semibold leading-tight">{gate.payload.title}</h3>
+   211→            {gate.payload.summary && (
+   212→              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{gate.payload.summary}</p>
+   213→            )}
+   214→          </div>
+   215→
+   216→          {gate.payload.highlights?.length > 0 && (
+   217→            <div>
+   218→              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+   219→                Highlights
+   220→              </p>
+   221→              <ul className="space-y-1">
+   222→                {gate.payload.highlights.map((h, i) => (
+   223→                  <li key={i} className="flex gap-2 text-xs leading-relaxed text-foreground/90">
+   224→                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+   225→                    <span>{h}</span>
+   226→                  </li>
+   227→                ))}
+   228→              </ul>
+   229→            </div>
+   230→          )}
+   231→
+   232→          {gate.payload.artifacts && gate.payload.artifacts.length > 0 && (
+   233→            <div>
+   234→              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+   235→                Artifacts
+   236→              </p>
+   237→              <div className="grid gap-1.5 sm:grid-cols-2">
+   238→                {gate.payload.artifacts.map((a, i) => (
+   239→                  <div
+   240→                    key={i}
+   241→                    className="flex items-center justify-between gap-2 rounded-md border border-border/50 bg-background/40 px-2.5 py-1.5 text-xs"
+   242→                  >
+   243→                    <span className="text-muted-foreground">{a.label}</span>
+   244→                    <span className="truncate font-mono text-foreground/90">{a.value}</span>
+   245→                  </div>
+   246→                ))}
+   247→              </div>
+   248→            </div>
+   249→          )}
+   250→
+   251→          {showRevision && (
+   252→            <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+   253→              <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+   254→                Revision feedback
+   255→              </label>
+   256→              <Textarea
+   257→                value={feedback}
+   258→                onChange={(e) => setFeedback(e.target.value)}
+   259→                placeholder="Tell the agent what to revise…"
+   260→                rows={3}
+   261→                className="bg-background/60"
+   262→              />
+   263→              <div className="flex justify-end gap-2">
+   264→                <Button size="sm" variant="ghost" onClick={() => setShowRevision(false)} disabled={!!pending}>
+   265→                  Cancel
+   266→                </Button>
+   267→                <Button
+   268→                  size="sm"
+   269→                  variant="outline"
+   270→                  onClick={() => decide.mutate({ decision: "revised", feedback })}
+   271→                  disabled={!!pending}
+   272→                  className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+   273→                >
+   274→                  {pending === "revise" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+   275→                  Send feedback
+   276→                </Button>
+   277→              </div>
+   278→            </div>
+   279→          )}
+   280→
+   281→          {!showRevision && (
+   282→            <div className="flex flex-wrap gap-2">
+   283→              <Button
+   284→                size="sm"
+   285→                onClick={() => decide.mutate({ decision: "approved" })}
+   286→                disabled={!!pending}
+   287→                className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
+   288→              >
+   289→                {pending === "approve" ? (
+   290→                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+   291→                ) : (
+   292→                  <Check className="mr-1.5 h-3.5 w-3.5" />
+   293→                )}
+   294→                Approve &amp; advance
+   295→              </Button>
+   296→              <Button
+   297→                size="sm"
+   298→                variant="outline"
+   299→                onClick={() => setShowRevision(true)}
+   300→                disabled={!!pending}
+   301→                className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+   302→              >
+   303→                <PenLine className="mr-1.5 h-3.5 w-3.5" /> Request revision
+   304→              </Button>
+   305→              <Button
+   306→                size="sm"
+   307→                variant="ghost"
+   308→                onClick={() => decide.mutate({ decision: "rejected" })}
+   309→                disabled={!!pending}
+   310→                className="text-muted-foreground hover:bg-rose-500/10 hover:text-rose-300"
+   311→              >
+   312→                {pending === "reject" ? (
+   313→                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+   314→                ) : (
+   315→                  <X className="mr-1.5 h-3.5 w-3.5" />
+   316→                )}
+   317→                Reject
+   318→              </Button>
+   319→            </div>
+   320→          )}
+   321→        </div>
+   322→      </Card>
+   323→    </motion.div>
+   324→  );
+   325→}
+   326→
+   327→// ── Artifact: Opportunity panel ──────────────────────────────────────────
+   328→function OpportunityPanel({ op }: { op: OpportunityRecord }) {
+   329→  return (
+   330→    <div className="space-y-3">
+   331→      <div className="flex items-center gap-3">
+   332→        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-500/15">
+   333→          <span className={cn("font-mono text-lg font-semibold", metricColor(op.opportunityScore))}>
+   334→            {Math.round(op.opportunityScore)}
+   335→          </span>
+   336→        </div>
+   337→        <div className="min-w-0 flex-1">
+   338→          <p className="text-sm font-medium">{op.title}</p>
+   339→          <p className="text-xs text-muted-foreground">{op.niche} · {op.angle}</p>
+   340→        </div>
+   341→        <StatusBadge status={op.confidence} />
+   342→      </div>
+   343→      {op.sources?.length > 0 && (
+   344→        <div className="flex flex-wrap gap-1.5">
+   345→          {op.sources.slice(0, 6).map((s, i) => (
+   346→            <Badge key={i} variant="outline" className="gap-1 border-border/60 bg-background/40 text-[10px] font-normal">
+   347→              <span className="text-foreground/80">{s.name}</span>
+   348→              <span className="text-muted-foreground">· {s.type}</span>
+   349→            </Badge>
+   350→          ))}
+   351→        </div>
+   352→      )}
+   353→      {op.trends?.length > 0 && (
+   354→        <div className="overflow-x-auto rounded-md border border-border/50">
+   355→          <table className="w-full min-w-[280px] text-[11px]">
+   356→            <thead className="bg-muted/30 text-[9px] uppercase tracking-wider text-muted-foreground">
+   357→              <tr>
+   358→                <th className="px-2 py-1 text-left">Source</th>
+   359→                <th className="px-2 py-1 text-left">Signal</th>
+   360→                <th className="px-2 py-1 text-left">Momentum</th>
+   361→              </tr>
+   362→            </thead>
+   363→            <tbody className="divide-y divide-border/40">
+   364→              {op.trends.map((t, i) => (
+   365→                <tr key={i}>
+   366→                  <td className="px-2 py-1">{t.source}</td>
+   367→                  <td className="px-2 py-1 text-muted-foreground">{t.signal}</td>
+   368→                  <td className="px-2 py-1 capitalize text-amber-300/80">{t.momentum}</td>
+   369→                </tr>
+   370→              ))}
+   371→            </tbody>
+   372→          </table>
+   373→        </div>
+   374→      )}
+   375→    </div>
+   376→  );
+   377→}
+   378→
+   379→// ── Artifact: Dossier panel ──────────────────────────────────────────────
+   380→function DossierPanel({ d }: { d: DossierRecord }) {
+   381→  return (
+   382→    <div className="space-y-4">
+   383→      <p className="text-sm leading-relaxed text-muted-foreground">{d.summary}</p>
+   384→
+   385→      {d.marketData?.length > 0 && (
+   386→        <div>
+   387→          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Market data</p>
+   388→          <div className="grid gap-1.5 sm:grid-cols-2">
+   389→            {d.marketData.map((m, i) => (
+   390→              <div key={i} className="flex items-center justify-between gap-2 rounded-md border border-border/50 bg-background/40 px-2.5 py-1.5 text-xs">
+   391→                <span className="text-muted-foreground">{m.label}</span>
+   392→                <span className="font-mono text-foreground/90">{m.value}</span>
+   393→              </div>
+   394→            ))}
+   395→          </div>
+   396→        </div>
+   397→      )}
+   398→
+   399→      {d.competitors?.length > 0 && (
+   400→        <div>
+   401→          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Competitors</p>
+   402→          <div className="space-y-2">
+   403→            {d.competitors.slice(0, 4).map((c, i) => (
+   404→              <div key={i} className="rounded-md border border-border/50 bg-background/40 p-2.5 text-xs">
+   405→                <p className="font-medium">{c.channel}</p>
+   406→                <p className="text-muted-foreground">{c.positioning}</p>
+   407→                <p className="mt-0.5 text-amber-300/80">Weakness: {c.weakness}</p>
+   408→              </div>
+   409→            ))}
+   410→          </div>
+   411→        </div>
+   412→      )}
+   413→
+   414→      {d.audienceInsights?.length > 0 && (
+   415→        <div>
+   416→          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Audience insights</p>
+   417→          <ul className="space-y-1">
+   418→            {d.audienceInsights.slice(0, 4).map((a, i) => (
+   419→              <li key={i} className="flex gap-1.5 text-xs text-foreground/80">
+   420→                <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-emerald-400" />
+   421→                <span>{a}</span>
+   422→              </li>
+   423→            ))}
+   424→          </ul>
+   425→        </div>
+   426→      )}
+   427→
+   428→      {d.news?.length > 0 && (
+   429→        <div>
+   430→          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">News</p>
+   431→          <ul className="space-y-1.5">
+   432→            {d.news.slice(0, 4).map((n, i) => (
+   433→              <li key={i} className="rounded-md border border-border/50 bg-background/40 p-2 text-xs">
+   434→                <p className="font-medium">{n.title}</p>
+   435→                <p className="text-muted-foreground">{n.source} · {n.date} · {n.relevance}</p>
+   436→              </li>
+   437→            ))}
+   438→          </ul>
+   439→        </div>
+   440→      )}
+   441→
+   442→      {d.knowledgeGaps?.length > 0 && (
+   443→        <div>
+   444→          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Knowledge gaps</p>
+   445→          <ul className="space-y-1">
+   446→            {d.knowledgeGaps.slice(0, 4).map((g, i) => (
+   447→              <li key={i} className="flex gap-1.5 text-xs text-amber-300/90">
+   448→                <span className="text-muted-foreground">·</span>
+   449→                <span>{g}</span>
+   450→              </li>
+   451→            ))}
+   452→          </ul>
+   453→        </div>
+   454→      )}
+   455→
+   456→      {d.references?.length > 0 && (
+   457→        <div>
+   458→          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">References</p>
+   459→          <ul className="space-y-1">
+   460→            {d.references.slice(0, 4).map((r, i) => (
+   461→              <li key={i} className="text-xs">
+   462→                <span className="font-medium text-foreground/90">{r.title}</span>
+   463→                <span className="text-muted-foreground"> — {r.note}</span>
+   464→              </li>
+   465→            ))}
+   466→          </ul>
+   467→        </div>
+   468→      )}
+   469→    </div>
+   470→  );
+   471→}
+   472→
+   473→// ── Artifact: Interview panel ────────────────────────────────────────────
+   474→function InterviewPanel({ project }: { project: ProjectDetail }) {
+   475→  const qc = useQueryClient();
+   476→  const [question, setQuestion] = useState("");
+   477→  const [answer, setAnswer] = useState("");
+   478→  const [selectedQid, setSelectedQid] = useState<string>("");
+   479→  const [themeTag, setThemeTag] = useState("");
+   480→
+   481→  const pending = project.interviews.filter((i) => !i.answer);
+   482→  const answered = project.interviews.filter((i) => i.answer);
+   483→
+   484→  const submitMut = useMutation({
+   485→    mutationFn: () => {
+   486→      // If a pending question is selected, use its text but submit as a new entry (api takes question + answer)
+   487→      const q = selectedQid
+   488→        ? project.interviews.find((i) => i.id === selectedQid)?.question ?? ""
+   489→        : question.trim();
+   490→      return api.submitInterview({
+   491→        projectId: project.id,
+   492→        question: q,
+   493→        answer: answer.trim(),
+   494→        themeTag: themeTag.trim() || undefined,
+   495→      });
+   496→    },
+   497→    onSuccess: () => {
+   498→      toast.success("Interview answer recorded");
+   499→      qc.invalidateQueries({ queryKey: ["project", project.id] });
+   500→      setQuestion("");
+   501→      setAnswer("");
+   502→      setSelectedQid("");
+   503→      setThemeTag("");
+   504→    },
+   505→    onError: (e: Error) => toast.error(e.message || "Failed to submit"),
+   506→  });
+   507→
+   508→  const genQMut = useMutation({
+   509→    mutationFn: () =>
+   510→      api.runAgent({ agentType: "chief_director", projectId: project.id, input: { action: "interview_questions" } }),
+   511→    onSuccess: () => {
+   512→      toast.success("Maestro generated new interview questions");
+   513→      qc.invalidateQueries({ queryKey: ["project", project.id] });
+   514→    },
+   515→    onError: (e: Error) => toast.error(e.message || "Failed to generate questions"),
+   516→  });
+   517→
+   518→  return (
+   519→    <div className="space-y-4">
+   520→      <div className="flex items-center justify-between">
+   521→        <p className="text-xs text-muted-foreground">
+   522→          {answered.length} answered · {pending.length} pending
+   523→        </p>
+   524→        <Button
+   525→          size="sm"
+   526→          variant="outline"
+   527→          onClick={() => genQMut.mutate()}
+   528→          disabled={genQMut.isPending}
+   529→          className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
+   530→        >
+   531→          {genQMut.isPending ? (
+   532→            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+   533→          ) : (
+   534→            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+   535→          )}
+   536→          Generate interview questions
+   537→        </Button>
+   538→      </div>
+   539→
+   540→      {/* Pending questions */}
+   541→      {pending.length > 0 && (
+   542→        <div>
+   543→          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+   544→            Pending questions
+   545→          </p>
+   546→          <ul className="space-y-1.5">
+   547→            {pending.map((q) => (
+   548→              <li key={q.id} className="rounded-md border border-amber-500/20 bg-amber-500/5 p-2.5 text-xs">
+   549→                <p className="font-medium text-amber-100/90">{q.question}</p>
+   550→                {q.themeTag && (
+   551→                  <Badge variant="outline" className="mt-1 border-amber-500/30 text-[9px] text-amber-300">
+   552→                    {q.themeTag}
+   553→                  </Badge>
+   554→                )}
+   555→              </li>
+   556→            ))}
+   557→          </ul>
+   558→        </div>
+   559→      )}
+   560→
+   561→      {/* Q&A list */}
+   562→      {answered.length > 0 && (
+   563→        <div className="space-y-2">
+   564→          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Answers</p>
+   565→          {answered.map((qa) => (
+   566→            <div key={qa.id} className="rounded-md border border-border/50 bg-background/40 p-3 text-xs">
+   567→              <p className="font-medium text-emerald-300">{qa.question}</p>
+   568→              <p className="mt-1.5 whitespace-pre-wrap text-foreground/85">{qa.answer}</p>
+   569→              {qa.themeTag && (
+   570→                <Badge variant="outline" className="mt-2 border-border/60 text-[9px] text-muted-foreground">
+   571→                  {qa.themeTag}
+   572→                </Badge>
+   573→              )}
+   574→            </div>
+   575→          ))}
+   576→        </div>
+   577→      )}
+   578→
+   579→      {/* Add answer form */}
+   580→      <div className="space-y-2 rounded-lg border border-border/60 bg-card/30 p-3">
+   581→        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+   582→          Add an interview answer
+   583→        </p>
+   584→        {pending.length > 0 && (
+   585→          <Select value={selectedQid} onValueChange={setSelectedQid}>
+   586→            <SelectTrigger className="h-9">
+   587→              <SelectValue placeholder="Answer a pending question (or write your own below)" />
+   588→            </SelectTrigger>
+   589→            <SelectContent>
+   590→              {pending.map((q) => (
+   591→                <SelectItem key={q.id} value={q.id}>
+   592→                  {q.question.slice(0, 80)}
+   593→                </SelectItem>
+   594→              ))}
+   595→            </SelectContent>
+   596→          </Select>
+   597→        )}
+   598→        {!selectedQid && (
+   599→          <Input
+   600→            value={question}
+   601→            onChange={(e) => setQuestion(e.target.value)}
+   602→            placeholder="Or write a new question…"
+   603→            className="h-9"
+   604→          />
+   605→        )}
+   606→        <Textarea
+   607→          value={answer}
+   608→          onChange={(e) => setAnswer(e.target.value)}
+   609→          placeholder="Your answer — opinions, expertise, stories, hot takes…"
+   610→          rows={3}
+   611→        />
+   612→        <div className="flex flex-wrap items-center gap-2">
+   613→          <Input
+   614→            value={themeTag}
+   615→            onChange={(e) => setThemeTag(e.target.value)}
+   616→            placeholder="theme tag (optional)"
+   617→            className="h-9 flex-1"
+   618→          />
+   619→          <Button
+   620→            size="sm"
+   621→            onClick={() => submitMut.mutate()}
+   622→            disabled={submitMut.isPending || (!answer.trim()) || (!selectedQid && !question.trim())}
+   623→            className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
+   624→          >
+   625→            {submitMut.isPending ? (
+   626→              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+   627→            ) : (
+   628→              <Plus className="mr-1.5 h-3.5 w-3.5" />
+   629→            )}
+   630→            Submit answer
+   631→          </Button>
+   632→        </div>
+   633→      </div>
+   634→    </div>
+   635→  );
+   636→}
+   637→
+   638→// ── Artifact: Scripts panel ──────────────────────────────────────────────
+   639→function ScriptsPanel({ scripts }: { scripts: ScriptRecord[] }) {
+   640→  const order = ["outline", "expanded_outline", "draft", "final"];
+   641→  const sorted = [...scripts].sort((a, b) => order.indexOf(a.stage) - order.indexOf(b.stage) || b.version - a.version);
+   642→  if (sorted.length === 0) return <p className="text-xs text-muted-foreground">No scripts produced yet.</p>;
+   643→  return (
+   644→    <Accordion type="single" collapsible defaultValue={sorted[sorted.length - 1].id}>
+   645→      {sorted.map((s, idx) => {
+   646→        const isLatest = idx === sorted.length - 1;
+   647→        return (
+   648→          <AccordionItem key={s.id} value={s.id}>
+   649→            <AccordionTrigger className="hover:no-underline">
+   650→              <div className="flex items-center gap-2 pr-2">
+   651→                <Badge
+   652→                  variant="outline"
+   653→                  className={cn(
+   654→                    "capitalize",
+   655→                    isLatest
+   656→                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+   657→                      : "border-border/60 text-muted-foreground",
+   658→                  )}
+   659→                >
+   660→                  {s.stage.replace("_", " ")}
+   661→                </Badge>
+   662→                <span className="text-[10px] text-muted-foreground">v{s.version}</span>
+   663→                {isLatest && (
+   664→                  <Badge variant="outline" className="border-emerald-500/30 text-[9px] text-emerald-300">
+   665→                    latest
+   666→                  </Badge>
+   667→                )}
+   668→              </div>
+   669→            </AccordionTrigger>
+   670→            <AccordionContent>
+   671→              {s.notes && <p className="mb-2 text-xs italic text-muted-foreground">{s.notes}</p>}
+   672→              <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-md border border-border/50 bg-background/60 p-3 font-mono text-[11px] leading-relaxed scroll-thin">
+   673→                {s.content}
+   674→              </pre>
+   675→            </AccordionContent>
+   676→          </AccordionItem>
+   677→        );
+   678→      })}
+   679→    </Accordion>
+   680→  );
+   681→}
+   682→
+   683→// ── Artifact: Holy Trifecta panel ────────────────────────────────────────
+   684→function TrifectaPanel({ t }: { t: TrifectaRecord }) {
+   685→  const thumb = t.thumbnailStrategy;
+   686→  return (
+   687→    <div className="space-y-4">
+   688→      <div className="relative overflow-hidden rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card/40 to-amber-500/10 p-5">
+   689→        <div className="grid-bg pointer-events-none absolute inset-0 opacity-30" />
+   690→        <div className="relative">
+   691→          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5">
+   692→            <Zap className="h-3 w-3 text-emerald-400" />
+   693→            <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-300">Holy Trifecta</span>
+   694→          </div>
+   695→          <h3 className="text-xl font-semibold leading-tight">{t.title}</h3>
+   696→          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+   697→            <Quote className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+   698→            <p className="text-sm italic text-amber-100/90">"{t.openingHook}"</p>
+   699→          </div>
+   700→        </div>
+   701→      </div>
+   702→
+   703→      {/* Thumbnail strategy */}
+   704→      <div>
+   705→        <p className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+   706→          <ImageIcon className="h-3 w-3" /> Thumbnail strategy
+   707→        </p>
+   708→        <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+   709→          {[
+   710→            { label: "Concept", value: thumb?.concept },
+   711→            { label: "Text overlay", value: thumb?.textOverlay },
+   712→            { label: "Focal subject", value: thumb?.focalSubject },
+   713→            { label: "Color mood", value: thumb?.colorMood },
+   714→            { label: "Emotion", value: thumb?.emotion },
+   715→          ].map((row) => (
+   716→            <div key={row.label} className="rounded-md border border-border/50 bg-background/40 p-2 text-xs">
+   717→              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{row.label}</p>
+   718→              <p className="mt-0.5 text-foreground/90">{row.value}</p>
+   719→            </div>
+   720→          ))}
+   721→        </div>
+   722→      </div>
+   723→
+   724→      {t.rationale && (
+   725→        <div>
+   726→          <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Rationale</p>
+   727→          <p className="text-xs leading-relaxed text-muted-foreground">{t.rationale}</p>
+   728→        </div>
+   729→      )}
+   730→
+   731→      {t.expectationMatch && (
+   732→        <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs">
+   733→          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Expectation match</p>
+   734→          <p className="mt-0.5 text-emerald-100/90">{t.expectationMatch}</p>
+   735→        </div>
+   736→      )}
+   737→
+   738→      {t.variants?.length > 0 && (
+   739→        <div>
+   740→          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Variants</p>
+   741→          <div className="flex flex-wrap gap-1.5">
+   742→            {t.variants.map((v, i) => (
+   743→              <Badge key={i} variant="outline" className="border-border/60 bg-background/40 text-[10px] font-normal">
+   744→                {v.title}
+   745→                {v.hook && <span className="ml-1 text-muted-foreground">· {v.hook.slice(0, 40)}</span>}
+   746→              </Badge>
+   747→            ))}
+   748→          </div>
+   749→        </div>
+   750→      )}
+   751→    </div>
+   752→  );
+   753→}
+   754→
+   755→// ── Artifact: Blueprint panel ────────────────────────────────────────────
+   756→function BlueprintPanel({ b }: { b: BlueprintRecord }) {
+   757→  return (
+   758→    <div className="space-y-3">
+   759→      <div className="flex items-center justify-between">
+   760→        <p className="text-xs text-muted-foreground">{b.segments.length} segments</p>
+   761→        <Badge variant="outline" className="border-emerald-500/30 text-emerald-300">
+   762→          <Clock className="mr-1 h-2.5 w-2.5" /> {b.totalDuration}
+   763→        </Badge>
+   764→      </div>
+   765→      <div className="overflow-x-auto rounded-md border border-border/50">
+   766→        <table className="w-full min-w-[760px] text-[11px]">
+   767→          <thead className="bg-muted/30 text-[9px] uppercase tracking-wider text-muted-foreground">
+   768→            <tr>
+   769→              <th className="px-2 py-1.5 text-left">Timecode</th>
+   770→              <th className="px-2 py-1.5 text-left">Section</th>
+   771→              <th className="px-2 py-1.5 text-left">B-roll</th>
+   772→              <th className="px-2 py-1.5 text-left">Graphics</th>
+   773→              <th className="px-2 py-1.5 text-left">Captions</th>
+   774→              <th className="px-2 py-1.5 text-left">Transitions</th>
+   775→              <th className="px-2 py-1.5 text-left">Retention</th>
+   776→            </tr>
+   777→          </thead>
+   778→          <tbody className="divide-y divide-border/40">
+   779→            {b.segments.map((s, i) => (
+   780→              <tr key={i} className="align-top">
+   781→                <td className="whitespace-nowrap px-2 py-1.5 font-mono text-emerald-300">{s.timecode}</td>
+   782→                <td className="px-2 py-1.5 font-medium">{s.section}</td>
+   783→                <td className="px-2 py-1.5 text-muted-foreground">{s.broll}</td>
+   784→                <td className="px-2 py-1.5 text-muted-foreground">{s.graphics}</td>
+   785→                <td className="px-2 py-1.5 text-muted-foreground">{s.captions}</td>
+   786→                <td className="px-2 py-1.5 text-muted-foreground">{s.transitions}</td>
+   787→                <td className="px-2 py-1.5">
+   788→                  <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-amber-200/90">{s.retentionNotes}</span>
+   789→                </td>
+   790→              </tr>
+   791→            ))}
+   792→          </tbody>
+   793→        </table>
+   794→      </div>
+   795→    </div>
+   796→  );
+   797→}
+   798→
+   799→// ── Artifact: Assets panel ───────────────────────────────────────────────
+   800→function AssetsPanel({ assets }: { assets: AssetRecord[] }) {
+   801→  if (assets.length === 0) return <p className="text-xs text-muted-foreground">No assets generated yet.</p>;
+   802→  return (
+   803→    <div className="grid gap-2 sm:grid-cols-2">
+   804→      {assets.map((a) => (
+   805→        <div key={a.id} className="rounded-md border border-border/50 bg-background/40 p-3">
+   806→          <div className="flex items-center gap-2">
+   807→            <div className="flex h-7 w-7 items-center justify-center rounded bg-muted/40">
+   808→              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+   809→            </div>
+   810→            <p className="flex-1 truncate text-xs font-medium">{a.title}</p>
+   811→            <StatusBadge status={a.status} />
+   812→          </div>
+   813→          <Badge variant="outline" className="mt-2 border-border/60 text-[9px] capitalize text-muted-foreground">
+   814→            {a.type.replace("_", " ")}
+   815→          </Badge>
+   816→          {a.prompt && <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">{a.prompt}</p>}
+   817→        </div>
+   818→      ))}
+   819→    </div>
+   820→  );
+   821→}
+   822→
+   823→// ── Artifact: Publish metadata panel ─────────────────────────────────────
+   824→function PublishMetadataPanel({ m }: { m: PublishMetadataRecord }) {
+   825→  return (
+   826→    <div className="space-y-3">
+   827→      <div>
+   828→        <p className="mb-1 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+   829→          <FileText className="h-3 w-3" /> Description
+   830→        </p>
+   831→        <pre className="whitespace-pre-wrap rounded-md border border-border/50 bg-background/40 p-2.5 font-mono text-[11px] leading-relaxed">
+   832→          {m.description}
+   833→        </pre>
+   834→      </div>
+   835→
+   836→      {m.chapters?.length > 0 && (
+   837→        <div>
+   838→          <p className="mb-1 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+   839→            <ListVideo className="h-3 w-3" /> Chapters
+   840→          </p>
+   841→          <ul className="space-y-0.5 text-xs">
+   842→            {m.chapters.map((c, i) => (
+   843→              <li key={i} className="flex items-center gap-2">
+   844→                <span className="font-mono text-emerald-300">{c.timecode}</span>
+   845→                <span className="text-foreground/85">{c.title}</span>
+   846→              </li>
+   847→            ))}
+   848→          </ul>
+   849→        </div>
+   850→      )}
+   851→
+   852→      {m.tags?.length > 0 && (
+   853→        <div>
+   854→          <p className="mb-1 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+   855→            <Hash className="h-3 w-3" /> Tags
+   856→          </p>
+   857→          <div className="flex flex-wrap gap-1">
+   858→            {m.tags.map((t, i) => (
+   859→              <Badge key={i} variant="outline" className="border-border/60 bg-background/40 text-[10px] font-normal">
+   860→                #{t}
+   861→              </Badge>
+   862→            ))}
+   863→          </div>
+   864→        </div>
+   865→      )}
+   866→
+   867→      {m.pinnedComment && (
+   868→        <div>
+   869→          <p className="mb-1 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+   870→            <MessageSquare className="h-3 w-3" /> Pinned comment
+   871→          </p>
+   872→          <p className="rounded-md border border-border/50 bg-background/40 p-2.5 text-xs italic text-foreground/85">
+   873→            "{m.pinnedComment}"
+   874→          </p>
+   875→        </div>
+   876→      )}
+   877→
+   878→      <div className="grid gap-2 sm:grid-cols-2">
+   879→        {m.playlist && (
+   880→          <div className="rounded-md border border-border/50 bg-background/40 p-2 text-xs">
+   881→            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Playlist</p>
+   882→            <p className="mt-0.5 text-foreground/90">{m.playlist}</p>
+   883→          </div>
+   884→        )}
+   885→        {m.publishAt && (
+   886→          <div className="rounded-md border border-border/50 bg-background/40 p-2 text-xs">
+   887→            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+   888→              <Calendar className="mr-1 inline h-2.5 w-2.5" /> Publish at
+   889→            </p>
+   890→            <p className="mt-0.5 font-mono text-violet-300">{new Date(m.publishAt).toLocaleString()}</p>
+   891→          </div>
+   892→        )}
+   893→      </div>
+   894→
+   895→      {m.endScreen && m.endScreen.length > 0 && (
+   896→        <div>
+   897→          <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">End screen</p>
+   898→          <ul className="space-y-0.5 text-xs">
+   899→            {m.endScreen.map((e, i) => (
+   900→              <li key={i} className="flex items-center gap-2">
+   901→                <Badge variant="outline" className="border-violet-500/30 text-[9px] capitalize text-violet-300">
+   902→                  {e.type}
+   903→                </Badge>
+   904→                <span className="text-foreground/85">{e.target}</span>
+   905→              </li>
+   906→            ))}
+   907→          </ul>
+   908→        </div>
+   909→      )}
+   910→    </div>
+   911→  );
+   912→}
+   913→
+   914→// ── Artifact: Performance panel ──────────────────────────────────────────
+   915→function PerformancePanel({ p }: { p: PerformanceRecord }) {
+   916→  return (
+   917→    <div className="space-y-4">
+   918→      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+   919→        <div className="rounded-md border border-border/50 bg-background/40 p-3">
+   920→          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">CTR</p>
+   921→          <p className={cn("mt-1 font-mono text-xl font-semibold", metricColor(p.ctr * 10))}>{p.ctr.toFixed(1)}%</p>
+   922→        </div>
+   923→        <div className="rounded-md border border-border/50 bg-background/40 p-3">
+   924→          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Retention</p>
+   925→          <p className={cn("mt-1 font-mono text-xl font-semibold", metricColor(p.retention))}>{p.retention.toFixed(1)}%</p>
+   926→        </div>
+   927→        <div className="rounded-md border border-border/50 bg-background/40 p-3">
+   928→          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Views</p>
+   929→          <p className="mt-1 font-mono text-xl font-semibold text-emerald-300">{formatViews(p.views)}</p>
+   930→        </div>
+   931→        <div className="rounded-md border border-border/50 bg-background/40 p-3">
+   932→          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Revenue</p>
+   933→          <p className="mt-1 font-mono text-xl font-semibold text-amber-300">{formatMoney(p.revenue)}</p>
+   934→        </div>
+   935→      </div>
+   936→
+   937→      {p.trafficSources?.length > 0 && (
+   938→        <div>
+   939→          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Traffic sources</p>
+   940→          <div className="space-y-1.5">
+   941→            {p.trafficSources.map((s, i) => (
+   942→              <div key={i} className="space-y-0.5">
+   943→                <div className="flex items-center justify-between text-[11px]">
+   944→                  <span className="text-foreground/80">{s.source}</span>
+   945→                  <span className="font-mono text-muted-foreground">{s.share.toFixed(1)}%</span>
+   946→                </div>
+   947→                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
+   948→                  <div
+   949→                    className="h-full rounded-full bg-emerald-500"
+   950→                    style={{ width: `${Math.max(2, Math.min(100, s.share))}%` }}
+   951→                  />
+   952→                </div>
+   953→              </div>
+   954→            ))}
+   955→          </div>
+   956→        </div>
+   957→      )}
+   958→
+   959→      {p.lessons?.length > 0 && (
+   960→        <div>
+   961→          <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Lessons</p>
+   962→          <ul className="space-y-1">
+   963→            {p.lessons.map((l, i) => (
+   964→              <li key={i} className="flex gap-1.5 text-xs text-foreground/85">
+   965→                <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-amber-400" />
+   966→                <span>{l}</span>
+   967→              </li>
+   968→            ))}
+   969→          </ul>
+   970→        </div>
+   971→      )}
+   972→    </div>
+   973→  );
+   974→}
+   975→
+   976→// ── Artifacts accordion ──────────────────────────────────────────────────
+   977→function ArtifactsAccordion({ project }: { project: ProjectDetail }) {
+   978→  const items: { value: string; label: string; icon: React.ComponentType<{ className?: string }>; present: boolean; node: React.ReactNode }[] = [
+   979→    {
+   980→      value: "opportunity",
+   981→      label: "Opportunity",
+   982→      icon: Sparkles,
+   983→      present: !!project.opportunity,
+   984→      node: project.opportunity ? <OpportunityPanel op={project.opportunity} /> : null,
+   985→    },
+   986→    {
+   987→      value: "dossier",
+   988→      label: "Research dossier",
+   989→      icon: FileText,
+   990→      present: !!project.dossier,
+   991→      node: project.dossier ? <DossierPanel d={project.dossier} /> : null,
+   992→    },
+   993→    {
+   994→      value: "interview",
+   995→      label: "Creator interview",
+   996→      icon: MessageSquare,
+   997→      present: project.interviews.length > 0,
+   998→      node: <InterviewPanel project={project} />,
+   999→    },
+  1000→    {
+  1001→      value: "scripts",
+  1002→      label: "Scripts",
+  1003→      icon: PenLine,
+  1004→      present: project.scripts.length > 0,
+  1005→      node: <ScriptsPanel scripts={project.scripts} />,
+  1006→    },
+  1007→    {
+  1008→      value: "trifecta",
+  1009→      label: "Holy Trifecta",
+  1010→      icon: Zap,
+  1011→      present: !!project.trifecta,
+  1012→      node: project.trifecta ? <TrifectaPanel t={project.trifecta} /> : null,
+  1013→    },
+  1014→    {
+  1015→      value: "blueprint",
+  1016→      label: "Editor blueprint",
+  1017→      icon: LayoutDashboard,
+  1018→      present: !!project.blueprint,
+  1019→      node: project.blueprint ? <BlueprintPanel b={project.blueprint} /> : null,
+  1020→    },
+  1021→    {
+  1022→      value: "assets",
+  1023→      label: "Assets",
+  1024→      icon: ImageIcon,
+  1025→      present: project.assets.length > 0,
+  1026→      node: <AssetsPanel assets={project.assets} />,
+  1027→    },
+  1028→    {
+  1029→      value: "metadata",
+  1030→      label: "Upload metadata",
+  1031→      icon: Send,
+  1032→      present: !!project.publishMetadata,
+  1033→      node: project.publishMetadata ? <PublishMetadataPanel m={project.publishMetadata} /> : null,
+  1034→    },
+  1035→    {
+  1036→      value: "performance",
+  1037→      label: "Performance",
+  1038→      icon: BarChart3,
+  1039→      present: !!project.metrics,
+  1040→      node: project.metrics ? <PerformancePanel p={project.metrics} /> : null,
+  1041→    },
+  1042→  ];
+  1043→
+  1044→  const presentItems = items.filter((i) => i.present);
+  1045→  if (presentItems.length === 0) {
+  1046→    return (
+  1047→      <Card className="border-dashed border-border/60 bg-card/30 p-6 text-center text-xs text-muted-foreground">
+  1048→        No artifacts produced yet — advance the pipeline to generate them.
+  1049→      </Card>
+  1050→    );
+  1051→  }
+  1052→
+  1053→  return (
+  1054→    <Accordion type="multiple" defaultValue={[presentItems[presentItems.length - 1].value]}>
+  1055→      {presentItems.map((it) => (
+  1056→        <AccordionItem key={it.value} value={it.value}>
+  1057→          <AccordionTrigger className="hover:no-underline">
+  1058→            <div className="flex items-center gap-2 pr-2">
+  1059→              <it.icon className="h-3.5 w-3.5 text-emerald-400" />
+  1060→              <span className="text-sm font-medium">{it.label}</span>
+  1061→            </div>
+  1062→          </AccordionTrigger>
+  1063→          <AccordionContent>{it.node}</AccordionContent>
+  1064→        </AccordionItem>
+  1065→      ))}
+  1066→    </Accordion>
+  1067→  );
+  1068→}
+  1069→
+  1070→// ── Activity feed ────────────────────────────────────────────────────────
+  1071→function ActivityFeed({ activities }: { activities: ProjectDetail["activities"] }) {
+  1072→  if (activities.length === 0) return <p className="text-xs text-muted-foreground">No activity yet.</p>;
+  1073→  const sorted = [...activities].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  1074→  return (
+  1075→    <div className="max-h-96 space-y-1.5 overflow-y-auto pr-1 scroll-thin">
+  1076→      {sorted.map((a) => {
+  1077→        const icon =
+  1078→          a.type === "agent" ? Bot : a.type === "approval" ? Check : a.type === "creator" ? MessageSquare : ActivityIcon;
+  1079→        const IconCmp = icon;
+  1080→        return (
+  1081→          <div key={a.id} className="flex gap-2 rounded-md border border-border/40 bg-background/30 p-2 text-xs">
+  1082→            <IconCmp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+  1083→            <div className="min-w-0 flex-1">
+  1084→              <p className="leading-snug text-foreground/85">{a.message}</p>
+  1085→              <p className="mt-0.5 text-[10px] text-muted-foreground">{timeAgo(a.createdAt)}</p>
+  1086→            </div>
+  1087→          </div>
+  1088→        );
+  1089→      })}
+  1090→    </div>
+  1091→  );
+  1092→}
+  1093→
+  1094→// ── Recent agent runs ────────────────────────────────────────────────────
+  1095→function RecentRuns({ runs }: { runs: ProjectDetail["agentRuns"] }) {
+  1096→  if (runs.length === 0) return <p className="text-xs text-muted-foreground">No agent runs yet.</p>;
+  1097→  const sorted = [...runs].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
+  1098→  return (
+  1099→    <div className="space-y-1.5">
+  1100→      {sorted.map((r) => {
+  1101→        const agent = AGENT_MAP[r.agentType];
+  1102→        return (
+  1103→          <div key={r.id} className="flex items-center gap-2 rounded-md border border-border/40 bg-background/30 p-2 text-xs">
+  1104→            {agent && <Icon name={agent.icon} className={cn("h-3.5 w-3.5 shrink-0", agent.color)} />}
+  1105→            <div className="min-w-0 flex-1">
+  1106→              <p className="truncate font-medium">{agent?.name ?? r.agentType}</p>
+  1107→              <p className="text-[10px] text-muted-foreground">
+  1108→                {timeAgo(r.createdAt)} · {formatDuration(r.durationMs)}
+  1109→              </p>
+  1110→            </div>
+  1111→            <StatusBadge status={r.status} />
+  1112→          </div>
+  1113→        );
+  1114→      })}
+  1115→    </div>
+  1116→  );
+  1117→}
+  1118→
+  1119→// ── Empty project picker ─────────────────────────────────────────────────
+  1120→function ProjectPicker() {
+  1121→  const { openProject } = useApp();
+  1122→  const { data, isLoading } = useQuery({ queryKey: ["projects"], queryFn: api.listProjects });
+  1123→  const projects = data?.projects ?? [];
+  1124→
+  1125→  return (
+  1126→    <div className="mx-auto max-w-7xl space-y-6">
+  1127→      <div className="text-center">
+  1128→        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/15">
+  1129→          <FolderKanban className="h-6 w-6 text-emerald-400" />
+  1130→        </div>
+  1131→        <h1 className="mt-3 text-2xl font-semibold tracking-tight">Select a project</h1>
+  1132→        <p className="mt-1 text-sm text-muted-foreground">
+  1133→          Pick an in-flight production to open its workspace, or discover a new opportunity.
+  1134→        </p>
+  1135→      </div>
+  1136→
+  1137→      {isLoading ? (
+  1138→        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+  1139→          {Array.from({ length: 6 }).map((_, i) => (
+  1140→            <Card key={i} className="h-32 animate-pulse border-border/60 bg-card/40" />
+  1141→          ))}
+  1142→        </div>
+  1143→      ) : projects.length === 0 ? (
+  1144→        <Card className="border-dashed border-border/60 bg-card/30 p-10 text-center text-sm text-muted-foreground">
+  1145→          No projects yet — discover an opportunity to begin.
+  1146→        </Card>
+  1147→      ) : (
+  1148→        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+  1149→          {projects.map((p) => (
+  1150→            <motion.button
+  1151→              key={p.id}
+  1152→              initial={{ opacity: 0, y: 8 }}
+  1153→              animate={{ opacity: 1, y: 0 }}
+  1154→              onClick={() => openProject(p.id)}
+  1155→              className="group flex flex-col gap-2 rounded-xl border border-border/60 bg-card/40 p-4 text-left transition-all hover:border-emerald-500/40 hover:bg-emerald-500/5"
+  1156→            >
+  1157→              <div className="flex items-center justify-between">
+  1158→                <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-[10px] capitalize text-emerald-300">
+  1159→                  {p.stage.replace("_", " ")}
+  1160→                </Badge>
+  1161→                {p.opportunityScore != null && (
+  1162→                  <span className={cn("font-mono text-xs font-semibold", metricColor(Number(p.opportunityScore)))}>
+  1163→                    {Math.round(Number(p.opportunityScore))}
+  1164→                  </span>
+  1165→                )}
+  1166→              </div>
+  1167→              <p className="line-clamp-2 text-sm font-medium leading-tight">{p.title}</p>
+  1168→              <p className="text-xs text-muted-foreground">{p.niche}</p>
+  1169→              <div className="mt-auto flex items-center justify-between pt-1">
+  1170→                <StatusBadge status={p.status} />
+  1171→                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-400" />
+  1172→              </div>
+  1173→            </motion.button>
+  1174→          ))}
+  1175→        </div>
+  1176→      )}
+  1177→    </div>
+  1178→  );
+  1179→}
+  1180→
+  1181→// ── Main workspace ───────────────────────────────────────────────────────
+  1182→function ProjectWorkspace({ projectId }: { projectId: string }) {
+  1183→  const qc = useQueryClient();
+  1184→  const { data: project, isLoading, isError, error } = useQuery({
+  1185→    queryKey: ["project", projectId],
+  1186→    queryFn: () => api.getProject(projectId),
+  1187→    refetchInterval: 8000,
+  1188→  });
+  1189→
+  1190→  const currentStage = project?.stage ?? "opportunity";
+  1191→  const currentStageInfo = PIPELINE.find((s) => s.key === currentStage) ?? PIPELINE[0];
+  1192→  const currentAgent = AGENT_MAP[currentStageInfo.agent];
+  1193→
+  1194→  // Find a pending approval gate at the current stage (or any earlier stage if blocked)
+  1195→  const pendingGate = useMemo(() => {
+  1196→    if (!project) return null;
+  1197→    const currentIdx = STAGE_INDEX[currentStage] ?? 0;
+  1198→    const gates = project.approvals
+  1199→      .filter((g) => g.status === "pending")
+  1200→      .sort((a, b) => {
+  1201→        const ai = STAGE_INDEX[a.stage] ?? 0;
+  1202→        const bi = STAGE_INDEX[b.stage] ?? 0;
+  1203→        // Prefer gate at current stage; otherwise the closest earlier pending gate
+  1204→        if (ai === currentIdx) return -1;
+  1205→        if (bi === currentIdx) return 1;
+  1206→        return bi - ai;
+  1207→      });
+  1208→    return gates[0] ?? null;
+  1209→  }, [project, currentStage]);
+  1210→
+  1211→  const advanceMut = useMutation({
+  1212→    mutationFn: () =>
+  1213→      api.runAgent({ agentType: "chief_director", projectId, input: { action: "advance" } }),
+  1214→    onSuccess: () => {
+  1215→      toast.success("Maestro dispatched the next agent");
+  1216→      qc.invalidateQueries({ queryKey: ["project", projectId] });
+  1217→      qc.invalidateQueries({ queryKey: ["dashboard"] });
+  1218→    },
+  1219→    onError: (e: Error) => {
+  1220→      toast.error(e.message || "Failed to advance pipeline");
+  1221→    },
+  1222→  });
+  1223→
+  1224→  if (isLoading) {
+  1225→    return (
+  1226→      <div className="mx-auto max-w-7xl space-y-4">
+  1227→        <div className="h-24 animate-pulse rounded-xl bg-card/40" />
+  1228→        <div className="h-12 animate-pulse rounded-xl bg-card/40" />
+  1229→        <div className="grid gap-4 lg:grid-cols-12">
+  1230→          <div className="h-96 animate-pulse rounded-xl bg-card/40 lg:col-span-8" />
+  1231→          <div className="h-96 animate-pulse rounded-xl bg-card/40 lg:col-span-4" />
+  1232→        </div>
+  1233→      </div>
+  1234→    );
+  1235→  }
+  1236→
+  1237→  if (isError || !project) {
+  1238→    return (
+  1239→      <div className="mx-auto max-w-3xl">
+  1240→        <Card className="border-rose-500/30 bg-rose-500/5 p-6 text-center text-sm text-rose-300">
+  1241→          Failed to load project: {(error as Error)?.message}
+  1242→        </Card>
+  1243→      </div>
+  1244→    );
+  1245→  }
+  1246→
+  1247→  return (
+  1248→    <div className="mx-auto max-w-7xl space-y-5">
+  1249→      {/* Project header */}
+  1250→      <motion.div
+  1251→        initial={{ opacity: 0, y: 8 }}
+  1252→        animate={{ opacity: 1, y: 0 }}
+  1253→        transition={{ duration: 0.3 }}
+  1254→      >
+  1255→        <Card className="border-border/60 bg-card/40 p-5">
+  1256→          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+  1257→            <div className="min-w-0 flex-1">
+  1258→              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+  1259→                <button
+  1260→                  onClick={() => useApp.setState({ activeProjectId: null })}
+  1261→                  className="flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+  1262→                >
+  1263→                  <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
+  1264→                </button>
+  1265→              </div>
+  1266→              <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">{project.title}</h1>
+  1267→              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+  1268→                <Badge variant="outline" className="border-border/60 text-[10px] capitalize text-muted-foreground">
+  1269→                  {project.niche}
+  1270→                </Badge>
+  1271→                <StatusBadge status={project.status} />
+  1272→                <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-[10px] capitalize text-emerald-300">
+  1273→                  {currentStageInfo.label}
+  1274→                </Badge>
+  1275→              </div>
+  1276→              {project.brief && (
+  1277→                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{project.brief}</p>
+  1278→              )}
+  1279→            </div>
+  1280→            {project.opportunity && (
+  1281→              <div className="flex shrink-0 items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
+  1282→                <Sparkles className="h-4 w-4 text-emerald-400" />
+  1283→                <div>
+  1284→                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Opp. score</p>
+  1285→                  <p className={cn("font-mono text-lg font-semibold", metricColor(project.opportunity.opportunityScore))}>
+  1286→                    {Math.round(project.opportunity.opportunityScore)}
+  1287→                  </p>
+  1288→                </div>
+  1289→              </div>
+  1290→            )}
+  1291→          </div>
+  1292→        </Card>
+  1293→      </motion.div>
+  1294→
+  1295→      {/* Stage stepper */}
+  1296→      <StageStepper currentStage={currentStage} />
+  1297→
+  1298→      {/* Main grid */}
+  1299→      <div className="grid gap-4 lg:grid-cols-12">
+  1300→        {/* Left main */}
+  1301→        <div className="space-y-4 lg:col-span-8">
+  1302→          {/* Current stage / approval */}
+  1303→          <Card className="border-border/60 bg-card/40 p-5">
+  1304→            <div className="mb-3 flex items-center gap-2">
+  1305→              {currentAgent && <Icon name={currentAgent.icon} className={cn("h-5 w-5", currentAgent.color)} />}
+  1306→              <div className="flex-1">
+  1307→                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Current stage</p>
+  1308→                <h3 className="text-sm font-semibold">{currentStageInfo.label}</h3>
+  1309→              </div>
+  1310→              {currentStageInfo.requiresApproval && (
+  1311→                <Badge variant="outline" className="border-amber-500/30 text-[10px] text-amber-300">
+  1312→                  <Lock className="mr-1 h-2.5 w-2.5" /> Approval gate
+  1313→                </Badge>
+  1314→              )}
+  1315→            </div>
+  1316→            <p className="mb-3 text-xs leading-relaxed text-muted-foreground">{currentStageInfo.description}</p>
+  1317→            {currentAgent && (
+  1318→              <div className="mb-4 flex items-center gap-2 rounded-md border border-border/50 bg-background/40 p-2.5 text-xs">
+  1319→                <Icon name={currentAgent.icon} className={cn("h-3.5 w-3.5", currentAgent.color)} />
+  1320→                <span className="font-medium text-foreground">{currentAgent.name}</span>
+  1321→                <span className="text-muted-foreground">· {currentAgent.role}</span>
+  1322→              </div>
+  1323→            )}
+  1324→
+  1325→            {pendingGate ? (
+  1326→              <ApprovalCard gate={pendingGate} projectId={project.id} />
+  1327→            ) : (
+  1328→              <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-background/40 p-4">
+  1329→                <div className="flex items-start gap-2">
+  1330→                  <Play className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+  1331→                  <div>
+  1332→                    <p className="text-sm font-medium">Run the next agent</p>
+  1333→                    <p className="text-xs text-muted-foreground">
+  1334→                      No pending approval gate at this stage — dispatch the next agent to continue.
+  1335→                    </p>
+  1336→                  </div>
+  1337→                </div>
+  1338→                <div>
+  1339→                  <Button
+  1340→                    onClick={() => advanceMut.mutate()}
+  1341→                    disabled={advanceMut.isPending}
+  1342→                    className="bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
+  1343→                  >
+  1344→                    {advanceMut.isPending ? (
+  1345→                      <>
+  1346→                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+  1347→                        Maestro is dispatching…
+  1348→                      </>
+  1349→                    ) : (
+  1350→                      <>
+  1351→                        <Sparkles className="mr-2 h-4 w-4" /> Run next agent
+  1352→                      </>
+  1353→                    )}
+  1354→                  </Button>
+  1355→                </div>
+  1356→                {advanceMut.isPending && (
+  1357→                  <p className="flex items-center gap-1.5 text-[11px] text-amber-200/80">
+  1358→                    <span className="relative flex h-1.5 w-1.5">
+  1359→                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
+  1360→                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400" />
+  1361→                    </span>
+  1362→                    Maestro is dispatching the next agent…
+  1363→                  </p>
+  1364→                )}
+  1365→              </div>
+  1366→            )}
+  1367→          </Card>
+  1368→
+  1369→          {/* Artifacts */}
+  1370→          <Card className="border-border/60 bg-card/40 p-5">
+  1371→            <div className="mb-3 flex items-center gap-2">
+  1372→              <FileText className="h-4 w-4 text-emerald-400" />
+  1373→              <h3 className="text-sm font-semibold">Artifacts</h3>
+  1374→              <span className="text-xs text-muted-foreground">Produced across the pipeline</span>
+  1375→            </div>
+  1376→            <Separator className="mb-3 bg-border/40" />
+  1377→            <ArtifactsAccordion project={project} />
+  1378→          </Card>
+  1379→        </div>
+  1380→
+  1381→        {/* Right sidebar */}
+  1382→        <div className="space-y-4 lg:col-span-4">
+  1383→          <Card className="border-border/60 bg-card/40 p-4">
+  1384→            <div className="mb-3 flex items-center gap-2">
+  1385→              <ActivityIcon className="h-4 w-4 text-emerald-400" />
+  1386→              <h3 className="text-sm font-semibold">Activity</h3>
+  1387→            </div>
+  1388→            <ActivityFeed activities={project.activities} />
+  1389→          </Card>
+  1390→
+  1391→          <Card className="border-border/60 bg-card/40 p-4">
+  1392→            <div className="mb-3 flex items-center gap-2">
+  1393→              <Bot className="h-4 w-4 text-amber-400" />
+  1394→              <h3 className="text-sm font-semibold">Recent agent runs</h3>
+  1395→            </div>
+  1396→            <RecentRuns runs={project.agentRuns} />
+  1397→          </Card>
+  1398→        </div>
+  1399→      </div>
+  1400→    </div>
+  1401→  );
+  1402→}
+  1403→
+  1404→export function WorkspaceView() {
+  1405→  const { activeProjectId } = useApp();
+  1406→  if (!activeProjectId) return <ProjectPicker />;
+  1407→  return <ProjectWorkspace projectId={activeProjectId} />;
+  1408→}
+  1409→
