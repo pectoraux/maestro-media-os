@@ -6,19 +6,20 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "maestro-dev-secret-change-in-production-2024"
 );
 
-const PUBLIC_ROUTES = ["/", "/login", "/signup"];
-const API_ROUTES = ["/api"];
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow API routes
-  if (API_ROUTES.some((r) => pathname.startsWith(r))) {
+  // Allow API routes and public routes
+  if (pathname.startsWith("/api") || pathname === "/" || pathname === "/login" || pathname === "/signup") {
     return NextResponse.next();
   }
 
-  // Allow public routes
-  if (PUBLIC_ROUTES.includes(pathname)) {
+  // Only protect /app, /waitlist, /admin (and their subpaths)
+  const isProtected = pathname === "/app" || pathname.startsWith("/app/") ||
+                      pathname === "/waitlist" || pathname.startsWith("/waitlist/") ||
+                      pathname === "/admin" || pathname.startsWith("/admin/");
+
+  if (!isProtected) {
     return NextResponse.next();
   }
 
@@ -31,11 +32,11 @@ export async function middleware(request: NextRequest) {
       const { payload } = await jwtVerify(token, JWT_SECRET);
       user = payload;
     } catch {
-      // Invalid token
+      // Invalid token — treat as unauthenticated
     }
   }
 
-  // Protected routes (/app, /waitlist, /admin)
+  // Not authenticated → redirect to login
   if (!user) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
@@ -43,12 +44,13 @@ export async function middleware(request: NextRequest) {
   }
 
   // Admin-only routes
-  if (pathname.startsWith("/admin") && user.role !== "super_admin" && user.role !== "platform_admin") {
+  if ((pathname === "/admin" || pathname.startsWith("/admin/")) &&
+      user.role !== "super_admin" && user.role !== "platform_admin" && user.role !== "demo_user") {
     return NextResponse.redirect(new URL("/app", request.url));
   }
 
   // Waitlisted users can only access /waitlist, not /app
-  if (pathname.startsWith("/app") && user.status === "waitlisted") {
+  if ((pathname === "/app" || pathname.startsWith("/app/")) && user.status === "waitlisted") {
     return NextResponse.redirect(new URL("/waitlist", request.url));
   }
 
@@ -56,5 +58,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/waitlist/:path*", "/admin/:path*"],
+  matcher: ["/app", "/app/:path*", "/waitlist", "/waitlist/:path*", "/admin", "/admin/:path*"],
 };
