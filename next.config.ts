@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
-  outputFileTracingIncludes: {
-    "/": ["./db/custom.db", "./.z-ai-config", "./prisma/schema.prisma"],
-  },
 };
 
 export default nextConfig;
