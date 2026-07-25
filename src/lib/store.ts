@@ -23,7 +23,8 @@ export type ViewKey =
   | "connectors"
   | "director"
   | "authenticity"
-  | "developer";
+  | "developer"
+  | "primitives";
 
 interface AppState {
   view: ViewKey;

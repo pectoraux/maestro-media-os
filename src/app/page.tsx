@@ -52,6 +52,7 @@ import { ConnectorsView } from "@/components/views/connectors-view";
 import { DirectorView } from "@/components/views/director-view";
 import { AuthenticityView } from "@/components/views/authenticity-view";
 import { DeveloperView } from "@/components/views/developer-view";
+import { PrimitivesView } from "@/components/views/primitives-view";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -69,6 +70,7 @@ const NAV: { key: ViewKey; label: string; icon: React.ComponentType<{ className?
   { key: "competitors", label: "Competitor Intelligence", icon: Crosshair, group: "Intelligence" },
   { key: "voice-dna", label: "Voice DNA", icon: Fingerprint, group: "Intelligence" },
   { key: "authenticity", label: "Authenticity Engine", icon: ShieldCheck, group: "Platform" },
+  { key: "primitives", label: "Media Primitives", icon: Boxes, group: "Platform" },
   { key: "identity", label: "Creator Identity", icon: IdCard, group: "Platform" },
   { key: "marketplace", label: "Capability Marketplace", icon: Store, group: "Platform" },
   { key: "connectors", label: "Output Connectors", icon: Plug, group: "Platform" },
@@ -247,6 +249,7 @@ export default function Home() {
             {view === "identity" && <IdentityView />}
             {view === "connectors" && <ConnectorsView />}
             {view === "authenticity" && <AuthenticityView />}
+            {view === "primitives" && <PrimitivesView />}
             {view === "developer" && <DeveloperView />}
             {view === "competitors" && <CompetitorsView />}
             {view === "voice-dna" && <VoiceDnaView />}

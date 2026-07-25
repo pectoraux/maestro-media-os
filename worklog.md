@@ -638,3 +638,37 @@ Stage Summary:
 - Semantic Memory: typed knowledge (principles, lessons, patterns, mistakes, experiments, frameworks, evidence, relationships, audience reactions) that compounds over time.
 - Developer SDK: defineExtension() abstraction — developers publish extensions, the kernel discovers capabilities automatically. Published extensions appear in the marketplace and can be installed.
 - The platform now has 30 Prisma models, 21 nav views, 8 OS kernel modules, and enforces authenticity as a runtime policy rather than documentation.
+
+---
+Task ID: 1-5 (Phase 5 — Media Primitives + Capability Contracts + Pervasive Authenticity)
+Agent: main
+Task: Build Media Primitives, Capability Contracts, richer Media DNA with extension-declared improvements, and pervasive authenticity across the full pipeline
+
+Work Log:
+- Schema: extended Capability model with contract fields (latencySec, qualityScore, costUsd, authenticitySupport, improvesDNA, requires, provider). Added MediaPrimitive model (9 types: idea/claim/story/evidence/scene/voice_performance/visual_asset/audience_reaction/knowledge_asset; fields: type, title, content, format, source, sourceRef, projectId, parentId, provenance, tags, status, authenticityScore). db:push OK (31 models).
+- Types: added PrimitiveType, MediaPrimitiveRecord, CapabilityContract (enriched), PipelineArtifact, PipelineAuthenticityResult. Updated CapabilityRecord + ExtensionManifest to include contract fields (authenticitySupport, improvesDNA, requires, provider).
+- Seed (seed-primitives.ts): enriched all 19 existing capabilities with contract data (authenticitySupport, improvesDNA, requires, provider, latencySec, qualityScore, costUsd). Seeded 12 Media Primitives (2 ideas, 2 claims, 1 story, 2 evidence, 1 scene, 2 audience reactions, 2 knowledge assets) — real content from the creator's history. Added Research Pro as a 3rd SDK example manifest.
+- Kernel (src/lib/os/):
+  - primitives.ts: listPrimitives, getPrimitive, createPrimitive, traceProvenance (walks parentId chain), getPrimitiveCounts. PRIMITIVE_TYPES registry (9 types with icon/color/description).
+  - capability-contracts.ts: getContract, listContracts, findByDNASupport, findByDNAImprovement, findByOutput, rankCapabilities (Director optimization: weighted quality/cost/latency ranking).
+  - authenticity.ts: added checkPipelineAuthenticity (pervasive — checks a full pipeline of artifacts at once, blocks publish if any fails).
+  - sdk.ts: updated EXAMPLE_MANIFESTS with authenticity + improvesDNA + cost + latencySec + qualityScore on each capability. Added Research Pro example.
+  - capabilities.ts: registerCapability + decode now handle the new contract fields.
+- API routes: /api/os/primitives (GET/POST), /api/os/primitives/[id] (GET + ?trace=true), /api/os/capabilities/[key] (GET contract detail), /api/os/pipeline/check (POST pervasive authenticity).
+- API client: added listPrimitives, createPrimitive, tracePrimitive, getCapabilityContract, checkPipeline.
+- Store + page.tsx: added "primitives" ViewKey + Media Primitives nav entry in Platform group. 22 total nav items.
+- Built primitives-view.tsx: 9-type overview grid (clickable filters with live counts), search, primitive list cards (type icon, title, content, source, tags, derived badge, authenticity score), transformation callout (Idea → Claim+Evidence → Story → Scene → Script → YouTube/TikTok/Newsletter/Podcast).
+
+Agent Browser self-verification:
+- Primitives view: renders all 9 types with counts (Idea:2, Claim:2, Story:1, Evidence:2, Scene:1, AudienceReaction:2, KnowledgeAsset:2). Primitive list shows real content (vector DB idea, fintech war story, trade-off framework, boring-answer test, ANN benchmarks evidence). Transformation callout renders.
+- Capability Contracts API: creative.script_writing returns full contract — Provider: Quill, Cost: $0.05, Latency: 18s, Quality: 0.85, AuthenticitySupport: [voice,writing,reasoning,humor,story], ImprovesDNA: [writing], Requires: [project.read,project.write], Inputs→Outputs.
+- Pipeline Authenticity API: pervasive check works — overall 83, allPassed, publishAllowed.
+- Footer sticky (1846px content, footer at bottom). Mobile: 390px no overflow. Lint: clean. Dev log: no errors.
+- Screenshots: verify-phase5-primitives.png, verify-phase5-authenticity.png.
+
+Stage Summary:
+- The platform now operates on Media Primitives, not format-specific outputs. The creator produces ideas; everything else is a transformation.
+- Capability Contracts give the Director the metadata to optimize plans (quality vs cost vs latency trade-offs, DNA support, permissions).
+- Pervasive Authenticity: every artifact in the pipeline (script → thumbnail → voice → video → description) passes through the Authenticity Engine before publish.
+- Extensions declare which DNA types they improve (authenticity + improvesDNA fields), so installing an extension enriches the authenticity reference models automatically.
+- 31 Prisma models, 22 nav views, 12 OS kernel modules, 17 OS API routes. The architecture is now identity-first, capability-driven, authenticity-governed, platform-agnostic, and developer-extensible.

@@ -8,3 +8,5 @@ export * from "./media-dna";
 export * from "./memory";
 export * from "./authenticity";
 export * from "./sdk";
+export * from "./primitives";
+export * from "./capability-contracts";

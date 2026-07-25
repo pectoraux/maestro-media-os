@@ -12,7 +12,7 @@ import { llmJson } from "@/lib/zai";
 import { getMediaDNAContext } from "./media-dna";
 import { getMemoryContext } from "./memory";
 import { getIdentityContext } from "./identity";
-import type { AuthenticityCheckResult, AuthenticityDimensionScore, AuthenticityScoreRecord } from "@/lib/types";
+import type { AuthenticityCheckResult, AuthenticityDimensionScore, AuthenticityScoreRecord, PipelineArtifact, PipelineAuthenticityResult } from "@/lib/types";
 
 export const DEFAULT_THRESHOLD = 70;
 
@@ -205,4 +205,47 @@ function computeOverall(d: AuthenticityDimensionScore): number {
     d.voice * w.voice + d.reasoning * w.reasoning + d.vocabulary * w.vocabulary +
     d.audienceExpectation * w.audienceExpectation + d.humor * w.humor + d.editing * w.editing + d.visualIdentity * w.visualIdentity
   );
+}
+
+// ── Pervasive Authenticity ──────────────────────────────────────────────────
+// Authenticity isn't just for scripts. EVERY artifact passes through it:
+// script → thumbnail → voice → video → description → publish.
+// Each gets scored; the pipeline is blocked if any artifact fails.
+
+export async function checkPipelineAuthenticity(
+  artifacts: PipelineArtifact[],
+  projectId?: string,
+  threshold = DEFAULT_THRESHOLD,
+): Promise<PipelineAuthenticityResult> {
+  const results: PipelineAuthenticityResult["artifacts"] = [];
+  const blocking: PipelineAuthenticityResult["blockingArtifacts"] = [];
+
+  for (const artifact of artifacts) {
+    const check = await checkAuthenticity(
+      { type: artifact.type, content: artifact.content, ref: artifact.ref, projectId },
+      threshold,
+    );
+    results.push({
+      type: artifact.type,
+      overall: check.overall,
+      passed: check.passed,
+      dimensions: check.dimensions,
+    });
+    if (!check.passed) {
+      blocking.push({ type: artifact.type, reason: check.blockingReason ?? "Below threshold" });
+    }
+  }
+
+  const overallPipeline = results.length > 0
+    ? Math.round(results.reduce((s, r) => s + r.overall, 0) / results.length * 10) / 10
+    : 0;
+  const allPassed = blocking.length === 0;
+
+  return {
+    artifacts: results,
+    overallPipeline,
+    allPassed,
+    blockingArtifacts: blocking,
+    publishAllowed: allPassed,
+  };
 }

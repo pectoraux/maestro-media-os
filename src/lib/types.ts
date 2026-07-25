@@ -522,6 +522,11 @@ export interface CapabilityRecord {
   extensionId?: string | null;
   agentType?: string | null;
   status: "active" | "disabled";
+  // Capability Contract
+  authenticitySupport?: MediaDNAType[];
+  improvesDNA?: MediaDNAType[];
+  requires?: string[];
+  provider?: string | null;
   createdAt: string;
 }
 
@@ -698,10 +703,72 @@ export interface ExtensionManifest {
   version: string;
   name: string;
   description: string;
-  capabilities: { key: string; name: string; description: string; inputs?: string[]; outputs?: string[] }[];
+  capabilities: { key: string; name: string; description: string; inputs?: string[]; outputs?: string[]; authenticity?: MediaDNAType[]; improvesDNA?: MediaDNAType[]; cost?: number; latencySec?: number; qualityScore?: number }[];
   agents: string[];
   connectors: string[];
   workflows: string[];
   permissions: string[];
   requirements?: Record<string, unknown>;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 5 — Media Primitives + Capability Contracts + Pervasive Authenticity
+// ════════════════════════════════════════════════════════════════════════════
+
+export type PrimitiveType =
+  | "idea" | "claim" | "story" | "evidence" | "scene"
+  | "voice_performance" | "visual_asset" | "audience_reaction" | "knowledge_asset";
+
+export interface MediaPrimitiveRecord {
+  id: string;
+  type: PrimitiveType;
+  title: string;
+  content: string;
+  format: "text" | "json" | "markdown" | "audio_url" | "image_url" | "video_url";
+  source: string;
+  sourceRef?: string | null;
+  projectId?: string | null;
+  parentId?: string | null;
+  provenance: { step: string; capability: string; timestamp: string }[];
+  tags: string[];
+  status: "draft" | "ready" | "published" | "archived";
+  authenticityScore: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Capability Contract — the enriched capability metadata the Director uses to optimize plans
+export interface CapabilityContract {
+  key: string;
+  name: string;
+  description: string;
+  category: string;
+  inputs: string[];
+  outputs: string[];
+  cost: "low" | "medium" | "high";
+  costUsd: number;
+  latency: "fast" | "medium" | "slow";
+  latencySec: number;
+  quality: "draft" | "good" | "high" | "production";
+  qualityScore: number;
+  authenticitySupport: MediaDNAType[]; // DNA types this capability can be checked against
+  improvesDNA: MediaDNAType[]; // DNA types this capability provides reference data for
+  requires: string[]; // permissions
+  provider: string;
+  source: string;
+}
+
+// Pervasive authenticity: check a full pipeline of artifacts at once
+export interface PipelineArtifact {
+  type: "script" | "trifecta" | "thumbnail" | "scene" | "voice" | "video" | "metadata" | "full_production";
+  content: string;
+  ref?: string;
+}
+
+export interface PipelineAuthenticityResult {
+  artifacts: { type: string; overall: number; passed: boolean; dimensions: AuthenticityDimensionScore }[];
+  overallPipeline: number;
+  allPassed: boolean;
+  blockingArtifacts: { type: string; reason: string }[];
+  publishAllowed: boolean;
 }

@@ -3,7 +3,7 @@
 // agents or by installed extensions.
 
 import { db } from "@/lib/db";
-import { jparseObj } from "@/lib/json";
+import { jparseObj, jparseArr } from "@/lib/json";
 import type { CapabilityRecord } from "@/lib/types";
 
 export async function listCapabilities(filter?: { category?: string; status?: string }): Promise<CapabilityRecord[]> {
@@ -48,6 +48,10 @@ export async function registerCapability(data: Omit<CapabilityRecord, "id" | "cr
       extensionId: data.extensionId ?? null,
       agentType: data.agentType ?? null,
       status: data.status,
+      authenticitySupport: JSON.stringify(data.authenticitySupport ?? []),
+      improvesDNA: JSON.stringify(data.improvesDNA ?? []),
+      requires: JSON.stringify(data.requires ?? []),
+      provider: data.provider ?? null,
     },
   });
   return decode(created);
@@ -69,6 +73,10 @@ function decode(r: any): CapabilityRecord {
     extensionId: r.extensionId,
     agentType: r.agentType,
     status: r.status,
+    authenticitySupport: jparseArr(r.authenticitySupport),
+    improvesDNA: jparseArr(r.improvesDNA),
+    requires: jparseArr(r.requires),
+    provider: r.provider,
     createdAt: r.createdAt.toISOString(),
   };
 }

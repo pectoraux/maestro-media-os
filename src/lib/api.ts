@@ -465,4 +465,17 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(manifest),
     }).then((r) => jsonOrThrow<{ extension: any }>(r)),
+
+  // ── Phase 5: Primitives + Contracts + Pipeline ──────────────────────────
+  listPrimitives: (type?: string, projectId?: string) =>
+    fetch(`/api/os/primitives${type ? `?type=${type}` : projectId ? `?projectId=${projectId}` : ''}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ primitives: any[]; counts: Record<string, number> }>(r)),
+  createPrimitive: (body: { type: string; title: string; content: string; format?: string; source?: string; tags?: string[] }) =>
+    fetch('/api/os/primitives', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => jsonOrThrow<{ primitive: any }>(r)),
+  tracePrimitive: (id: string) =>
+    fetch(`/api/os/primitives/${id}?trace=true`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ chain: any[] }>(r)),
+  getCapabilityContract: (key: string) =>
+    fetch(`/api/os/capabilities/${key}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ contract: any }>(r)),
+  checkPipeline: (artifacts: { type: string; content: string }[], projectId?: string, threshold?: number) =>
+    fetch('/api/os/pipeline/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ artifacts, projectId, threshold }) }).then((r) => jsonOrThrow<any>(r)),
+
 };

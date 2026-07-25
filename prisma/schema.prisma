@@ -442,15 +442,23 @@ model Capability {
   name        String
   description String
   category    String   // intelligence | creative | production | distribution | learning | identity | safety
-  inputs      String   // JSON: required input types
-  outputs     String   // JSON: produced output types
+  inputs      String   // JSON: required input types (Media Primitives)
+  outputs     String   // JSON: produced output types (Media Primitives)
   cost        String   @default("low") // low | medium | high
   latency     String   @default("fast") // fast | medium | slow
+  latencySec  Int      @default(0) // estimated seconds (0 = unknown)
   quality     String   @default("good") // draft | good | high | production
+  qualityScore Float   @default(0.7) // 0-1 normalized quality
+  costUsd     Float    @default(0) // estimated cost in USD per invocation
   source      String   @default("builtin") // builtin | extension:<extId>
   extensionId String?  // null if builtin
   agentType   String?  // the agent that fulfills this capability (if builtin)
   status      String   @default("active") // active | disabled
+  // Capability Contract: authenticity + DNA support
+  authenticitySupport String @default("[]") // JSON: DNA types this capability supports (e.g. ["voice","writing"])
+  improvesDNA  String   @default("[]") // JSON: DNA types this capability improves/provides reference for
+  requires     String   @default("[]") // JSON: required permissions/scopes
+  provider     String?  // the providing service (e.g. "Voice Studio", "ElevenLabs", "Runway")
   createdAt   DateTime @default(now())
 
   @@index([category])
@@ -584,4 +592,36 @@ model AuthenticityScore {
   @@index([projectId, artifactType])
   @@index([passed])
   @@map("authenticity_scores")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 5 — Media Primitives + Capability Contracts + Pervasive Authenticity
+// Format-independent creative building blocks. The kernel operates on these,
+// not on "YouTube videos" or "tweets". Connectors transform primitives into
+// platform-specific outputs.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Media Primitive: a reusable creative building block, independent of format.
+// The creator isn't producing videos. They're producing ideas. Everything else
+// is a transformation. Primitives flow through capabilities and become outputs.
+model MediaPrimitive {
+  id          String   @id @default(cuid())
+  type        String   // idea | claim | story | evidence | scene | voice_performance | visual_asset | audience_reaction | knowledge_asset
+  title       String
+  content     String   // the primitive's content (text, JSON spec, etc.)
+  format      String   @default("text") // text | json | markdown | audio_url | image_url | video_url
+  source      String   @default("creator") // creator | agent:<type> | extension:<id> | research
+  sourceRef   String?  // project id, agent run id, etc.
+  projectId   String?
+  parentId    String?  // for derived primitives (a claim derived from a story)
+  provenance  String   @default("[]") // JSON: [{ step, capability, timestamp }] — how this primitive was produced
+  tags        String   @default("[]") // JSON string array
+  status      String   @default("draft") // draft | ready | published | archived
+  authenticityScore Float @default(0) // 0-100, last authenticity check
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+  @@index([projectId])
+  @@map("media_primitives")
 }
