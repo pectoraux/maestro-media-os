@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   Brain,
   Share2,
+  TrendingUp,
   Code2,
 } from "lucide-react";
 import { DashboardView } from "@/components/views/dashboard-view";
@@ -60,10 +61,12 @@ import { ConstitutionView } from "@/components/views/constitution-view";
 import { TrustView } from "@/components/views/trust-view";
 import { MindView } from "@/components/views/mind-view";
 import { KnowledgeGraphView } from "@/components/views/knowledge-graph-view";
+import { VentureView } from "@/components/views/venture-view";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 const NAV: { key: ViewKey; label: string; icon: React.ComponentType<{ className?: string }>; group: string }[] = [
+  { key: "venture", label: "Creator Venture Studio", icon: TrendingUp, group: "Overview" },
   { key: "dashboard", label: "Command Center", icon: LayoutDashboard, group: "Overview" },
   { key: "media-os", label: "Media OS", icon: Boxes, group: "Overview" },
   { key: "director", label: "Director AI", icon: Compass, group: "Overview" },
@@ -247,6 +250,7 @@ export default function Home() {
 
           <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">
             {view === "dashboard" && <DashboardView />}
+            {view === "venture" && <VentureView />}
             {view === "intelligence" && <IntelligenceView />}
             {view === "opportunities" && <OpportunitiesView />}
             {view === "approvals" && <ApprovalsView />}

@@ -811,3 +811,94 @@ model ReasoningTrace {
   @@index([projectId, artifactType])
   @@map("reasoning_traces")
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 9 — Creator Venture Studio
+// The platform maximizes the economic value of a creator's unique abilities
+// while remaining authentic. The optimization target is the creator's long-term
+// success, not better videos.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Creator Venture: the creator as a startup
+model CreatorVenture {
+  id              String   @id @default(cuid())
+  stage           String   @default("seed") // seed | early | growth | mature | scale
+  vision          String?  // the creator's long-term vision
+  projectedValue  Float    @default(0) // estimated venture value (annual revenue potential)
+  revenueStreams  String   @default("[]") // JSON: [{ type, currentMonthly, potentialMonthly }]
+  growthStrategy  String   @default("[]") // JSON: [{ lever, description, impact }]
+  executionCapacity String @default("{}") // JSON: { hoursPerWeek, budget, equipment, editingSkills, consistency, energy }
+  roadmap         String   @default("[]") // JSON: [{ quarter, milestones[] }]
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  @@map("creator_ventures")
+}
+
+// ── Unfair Advantage: what combination of skills/experiences/personality is rare
+model UnfairAdvantage {
+  id          String   @id @default(cuid())
+  title       String   // the advantage, e.g. "ML engineer who can teach and has built fintech"
+  description String
+  components  String   @default("[]") // JSON: [{ type: skill|experience|personality|network|interest, value }]
+  rarity      Float    @default(0.5) // 0-1, how rare this combination is
+  defensibility Float  @default(0.5) // 0-1, how hard to copy
+  monetization Float   @default(0.5) // 0-1, how monetizable
+  evidence    String   @default("[]") // JSON: supporting evidence
+  createdAt   DateTime @default(now())
+
+  @@map("unfair_advantages")
+}
+
+// ── Market Opportunity: a market the creator could enter, with personal fit
+model MarketOpportunity {
+  id              String   @id @default(cuid())
+  niche           String
+  audience        String   // target audience
+  marketSize      String   @default("medium") // small | medium | large | huge
+  competition     String   @default("medium") // low | medium | high | saturated
+  difficulty      String   @default("medium") // easy | medium | hard | very_hard
+  growthRate      String   @default("stable") // declining | stable | growing | exploding
+  monetization    String   @default("medium") // low | medium | high | very_high
+  trustPotential  Float    @default(0.5) // 0-1
+  longevity       Float    @default(0.5) // 0-1, evergreen vs trendy
+  personalFit     Float    @default(0.5) // 0-1, can THIS creator sustainably dominate?
+  expectedROI     Float    @default(0.5) // 0-1
+  creatorMarketFit Float   @default(0) // computed Creator-Market Fit score (0-100)
+  createdAt       DateTime @default(now())
+
+  @@map("market_opportunities")
+}
+
+// ── Financial Forecast: scenario-based projections
+model FinancialForecast {
+  id              String   @id @default(cuid())
+  scenario        String   // conservative | expected | aggressive
+  horizonMonths   Int      @default(18)
+  assumptions     String   @default("{}") // JSON: { videosPerWeek, qualityLevel, retention, targetAudience }
+  projections     String   @default("{}") // JSON: { subscribers, monthlyViews, sponsorshipRevenue, affiliateRevenue, courseSales, consultingLeads, arr }
+  confidenceLow   String   @default("{}") // JSON: lower bound projections
+  confidenceHigh  String   @default("{}") // JSON: upper bound projections
+  confidence      Float    @default(0.5) // 0-1
+  createdAt       DateTime @default(now())
+
+  @@map("financial_forecasts")
+}
+
+// ── Outcome: what the creator is trying to achieve (the optimization target)
+model Outcome {
+  id          String   @id @default(cuid())
+  title       String   // e.g. "Reach 100k subscribers", "Launch ML course", "$20k/month"
+  category    String   // audience | revenue | product | authority | community | career
+  target      String?  // the measurable target
+  deadline    String?  // ISO date or relative ("6 months")
+  status      String   @default("active") // active | achieved | abandoned
+  progress    Float    @default(0) // 0-1
+  priority    String   @default("high") // low | medium | high | critical
+  milestones  String   @default("[]") // JSON: [{ title, done }]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@map("outcomes")
+}

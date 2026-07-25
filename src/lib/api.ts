@@ -529,4 +529,23 @@ export const api = {
   getGoals: (status?: string) =>
     fetch(`/api/os/goals${status ? `?status=${status}` : ''}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ goals: any[] }>(r)),
 
+
+  // ── Phase 9: Creator Venture Studio ─────────────────────────────────────
+  getVenture: () =>
+    fetch('/api/os/venture', { cache: 'no-store' }).then((r) => jsonOrThrow<{ venture: any }>(r)),
+  getUnfairAdvantages: () =>
+    fetch('/api/os/venture/unfair-advantages', { cache: 'no-store' }).then((r) => jsonOrThrow<{ advantages: any[] }>(r)),
+  discoverUnfairAdvantages: () =>
+    fetch('/api/os/venture/unfair-advantages', { method: 'POST' }).then((r) => jsonOrThrow<{ advantages: any[] }>(r)),
+  getMarketOpportunities: () =>
+    fetch('/api/os/venture/market-fit', { cache: 'no-store' }).then((r) => jsonOrThrow<{ opportunities: any[] }>(r)),
+  computeMarketFit: (id: string) =>
+    fetch(`/api/os/venture/market-fit/${id}`, { method: 'POST' }).then((r) => jsonOrThrow<any>(r)),
+  getForecasts: () =>
+    fetch('/api/os/venture/forecast', { cache: 'no-store' }).then((r) => jsonOrThrow<{ forecasts: any[] }>(r)),
+  generateForecast: (body: { videosPerWeek?: number; qualityLevel?: number; retention?: number; targetAudience?: string }) =>
+    fetch('/api/os/venture/forecast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => jsonOrThrow<{ forecasts: any[] }>(r)),
+  getOutcomes: (status?: string) =>
+    fetch(`/api/os/outcomes${status ? `?status=${status}` : ''}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ outcomes: any[] }>(r)),
+
 };

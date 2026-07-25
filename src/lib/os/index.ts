@@ -20,3 +20,7 @@ export * from "./creator-mind";
 export * from "./knowledge-graph";
 export * from "./reasoning-trace";
 export * from "./goals-audiences";
+export * from "./venture";
+export * from "./market-fit";
+export * from "./forecasting";
+export * from "./outcomes";

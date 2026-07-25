@@ -990,3 +990,99 @@ export interface CreatorMindRecord {
   channels: { connected: number; total: number };
   summary: string;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 9 — Creator Venture Studio
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface CreatorVentureRecord {
+  id: string;
+  stage: "seed" | "early" | "growth" | "mature" | "scale";
+  vision?: string | null;
+  projectedValue: number;
+  revenueStreams: { type: string; currentMonthly: number; potentialMonthly: number }[];
+  growthStrategy: { lever: string; description: string; impact: string }[];
+  executionCapacity: { hoursPerWeek: number; budget: string; equipment: string; editingSkills: string; consistency: string; energy: string };
+  roadmap: { quarter: string; milestones: string[] }[];
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface UnfairAdvantageRecord {
+  id: string;
+  title: string;
+  description: string;
+  components: { type: string; value: string }[];
+  rarity: number;
+  defensibility: number;
+  monetization: number;
+  evidence: string[];
+  createdAt: string;
+}
+
+export interface MarketOpportunityRecord {
+  id: string;
+  niche: string;
+  audience: string;
+  marketSize: string;
+  competition: string;
+  difficulty: string;
+  growthRate: string;
+  monetization: string;
+  trustPotential: number;
+  longevity: number;
+  personalFit: number;
+  expectedROI: number;
+  creatorMarketFit: number;
+  createdAt: string;
+}
+
+export interface CreatorMarketFitResult {
+  overall: number;
+  dimensions: {
+    knowledgeMatch: number;
+    skillMatch: number;
+    interestMatch: number;
+    identityMatch: number;
+    audienceMatch: number;
+    competitionAdvantage: number;
+    monetizationPotential: number;
+    enjoyment: number;
+    longevity: number;
+  };
+  rationale: string;
+}
+
+export interface FinancialForecastRecord {
+  id: string;
+  scenario: "conservative" | "expected" | "aggressive";
+  horizonMonths: number;
+  assumptions: Record<string, unknown>;
+  projections: {
+    subscribers: number;
+    monthlyViews: number;
+    sponsorshipRevenue: number;
+    affiliateRevenue: number;
+    courseSales: number;
+    consultingLeads: number;
+    arr: number;
+  };
+  confidenceLow: Record<string, number>;
+  confidenceHigh: Record<string, number>;
+  confidence: number;
+  createdAt: string;
+}
+
+export interface OutcomeRecord {
+  id: string;
+  title: string;
+  category: "audience" | "revenue" | "product" | "authority" | "community" | "career";
+  target?: string | null;
+  deadline?: string | null;
+  status: "active" | "achieved" | "abandoned";
+  progress: number;
+  priority: "low" | "medium" | "high" | "critical";
+  milestones: { title: string; done: boolean }[];
+  createdAt: string;
+  updatedAt: string;
+}

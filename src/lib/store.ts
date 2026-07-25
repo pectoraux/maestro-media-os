@@ -28,7 +28,8 @@ export type ViewKey =
   | "constitution"
   | "trust"
   | "mind"
-  | "knowledge-graph";
+  | "knowledge-graph"
+  | "venture";
 
 interface AppState {
   view: ViewKey;
