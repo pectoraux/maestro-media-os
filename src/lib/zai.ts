@@ -1,13 +1,41 @@
 import ZAI from "z-ai-web-dev-sdk";
+import fs from "fs";
+import path from "path";
 
 let _instance: Promise<ZAI> | null = null;
 
 // Singleton ZAI client — backend only.
+// Supports both file-based config (sandbox) and env-var config (Vercel).
 export async function zai(): Promise<ZAI> {
   if (!_instance) {
-    _instance = ZAI.create();
+    _instance = createZAI();
   }
   return _instance;
+}
+
+async function createZAI(): Promise<ZAI> {
+  // Try file-based config first (works in sandbox)
+  try {
+    return await ZAI.create();
+  } catch {
+    // Fall back to env-var config (for Vercel/serverless)
+    const baseUrl = process.env.ZAI_BASE_URL;
+    const apiKey = process.env.ZAI_API_KEY;
+    if (baseUrl && apiKey) {
+      const config = {
+        baseUrl,
+        apiKey,
+        chatId: process.env.ZAI_CHAT_ID || "",
+        token: process.env.ZAI_TOKEN || "",
+        userId: process.env.ZAI_USER_ID || "",
+      };
+      // Write a temp config file so the SDK's internal methods also find it
+      const configPath = path.join(process.cwd(), ".z-ai-config");
+      try { fs.writeFileSync(configPath, JSON.stringify(config)); } catch { /* may be read-only on Vercel */ }
+      return new ZAI(config) as unknown as ZAI;
+    }
+    throw new Error("ZAI SDK not configured. Set ZAI_BASE_URL and ZAI_API_KEY env vars, or create .z-ai-config file.");
+  }
 }
 
 export interface SearchResultItem {

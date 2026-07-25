@@ -902,3 +902,94 @@ model Outcome {
   @@index([status])
   @@map("outcomes")
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 10 — Authentication & Access System
+// Creator onboarding: Visitor → Waitlisted → Active. Admin approval workflow.
+// RBAC roles, Organizations, Creator Readiness Score.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── User: authenticated creator or team member
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String?
+  name          String?
+  role          String   @default("creator") // super_admin | platform_admin | org_owner | manager | producer | editor | researcher | creator | reviewer | viewer | guest | demo_user
+  status        String   @default("waitlisted") // visitor | waitlisted | active | suspended | demo
+  organizationId String?
+  avatarUrl     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  waitlistEntry  WaitlistEntry?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  sessions       Session[]
+
+  @@index([status])
+  @@map("users")
+}
+
+// ── Session: JWT-based sessions (stored for audit + revocation)
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ── Waitlist Entry: rich application with Creator Readiness Score
+model WaitlistEntry {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  email               String   @unique
+  name                String?
+  country             String?
+  occupation          String?
+  skills              String   @default("[]") // JSON array
+  experience          String?  // years + description
+  goals               String   @default("[]") // JSON array
+  targetPlatforms     String   @default("[]") // JSON: youtube, tiktok, podcast, etc.
+  interests           String   @default("[]") // JSON array
+  referralSource      String?
+  existingAudience    String?  // current audience size
+  youtubeChannel      String?
+  xAccount            String?
+  linkedinUrl         String?
+  preferredFormats    String   @default("[]") // JSON: long-form, shorts, newsletter, etc.
+  monetizationGoals   String?  // what they want to earn
+  availableHours      Int      @default(10) // hours per week
+  personality         String?  // communication style
+  // Creator Readiness Score (0-100, computed from profile completeness)
+  readinessScore      Float    @default(0)
+  readinessBreakdown  String   @default("{}") // JSON: { skills, experience, goals, audience, platforms, completeness }
+  // Waitlist position
+  position            Int      @default(0)
+  status              String   @default("waitlisted") // waitlisted | approved | rejected | info_requested
+  approvedAt          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("waitlist_entries")
+}
+
+// ── Organization: personal creator, agency, startup, media company, enterprise
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("personal") // personal | agency | startup | media_company | enterprise
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  User[]
+
+  @@map("organizations")
+}

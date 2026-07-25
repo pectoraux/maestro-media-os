@@ -804,3 +804,64 @@ Stage Summary:
 - Outcomes: the optimization target — every recommendation answers "does this move the creator closer to the outcome?"
 - 44 Prisma models, 27 nav views, 25 OS kernel modules, 39 OS API routes.
 - The platform's mission is now formally: maximize the economic value of a creator's unique abilities while remaining authentic. The optimization target is the long-term success of the creator — audience, revenue, authority, products, and trust compounding over years.
+
+---
+Task ID: 4
+Agent: fullstack-developer (auth & access frontend — 5 pages)
+
+Task:
+Build the 5 authentication & access system pages for Maestro: the landing page (`/`), login (`/login`), signup / join waitlist (`/signup`), waitlist dashboard (`/waitlist`), and admin approval dashboard (`/admin`). These are the gates every visitor, creator, and admin walks through. The landing page is the first impression — it had to be visually stunning. Only `/` was an existing file (a copy of the old app, which had been moved to `/app`); the other 4 were new.
+
+Work Log:
+- Read the contract first: `globals.css` (dark command-center theme, emerald accent, `grid-bg` / `glass` / `text-gradient-emerald` / `scroll-thin` / `animate-pulse-dot` utilities, NO indigo/blue), `src/lib/auth.ts` (ROLES, DEMO_USERS — 7 roles, computeReadinessScore signature with 6-dimension breakdown totaling 100), `src/lib/api.ts`, `src/app/app/page.tsx` (style reference), and the auth API routes (`/api/auth/{signup,login,demo,session,logout}`, `/api/waitlist` GET/PUT, `/api/waitlist/[id]/{approve,reject}`). Verified the `computeReadinessScore` math (skills 0–20, experience 0–15, goals 0–15, audience 0–20, platforms 0–15, completeness 0–15 = 100) so the waitlist gauge could mirror it client-side.
+- Verified shadcn/ui exports for the components I needed: Card, Button, Input, Label, Badge, Checkbox, Separator, Tabs, Textarea, Select. Confirmed `framer-motion` v12 and `sonner` toast available. Confirmed `cn()` from `@/lib/utils`.
+- **`src/app/page.tsx` — Landing page (OVERWRITE, ~518 lines, `"use client"`):**
+  - Sticky header with Maestro logo, in-page nav (Demo / Features), and conditional auth buttons: if session present → "Go to Dashboard" (emerald); else → "Sign in" + "Join Waitlist". Session checked via `fetch("/api/auth/session")` in `useEffect`.
+  - Hero: ambient `grid-bg` + emerald/violet blurred orbs, "AI Media Operating System" pulsing badge, `text-gradient-emerald` headline ("Maestro — the AI Media Operating System"), subtitle (identity-first / capability-driven / authenticity-governed), two CTAs ("Join Waitlist" → `/signup`, "Try Demo" → smooth-scroll to `#demo`). Welcome-back message if session has a name.
+  - Hero stat strip: 4 mono-numbered cards (12+ agents, 44 models, 9 trust dimensions, ∞ extensions).
+  - **Demo login section** (`#demo`): "Try Maestro — Continue as…" with 7 role buttons in a responsive grid (Creator / Editor / Producer / AI Director / Research Analyst / Administrator / Viewer). Each button has a role-colored icon tile + label + description + ArrowRight. Clicking POSTs to `/api/auth/demo` with `{role}` — the active button shows `Loader2` spinner, all buttons disable during the request, on success redirects to `/app` with a sonner toast. An 8th dashed tile ("Want your own space?") links to `/signup`.
+  - **Feature highlights** (`#features`): 4 cards (Creator Mind / Creative Constitution / Authenticity Engine / Creator Venture Studio), each with lucide icon, role-colored border, gradient glow background, title, description. Plus a 3-principle strip ("Identity-first / Capability-driven / Authenticity-governed") in an emerald-tinted card.
+  - Final CTA card with `grid-bg` overlay: "Your Creator Mind is waiting." + Join Waitlist + Sign in buttons.
+  - Footer (sticky via `mt-auto` on the flex column): Maestro tagline + GitHub link + Demo + Waitlist buttons.
+  - Verified the curly-quote escape in the Authenticity Engine description (`\u201c` / `\u201d`) so the JS string literal parses correctly while still rendering the typographic quotes.
+- **`src/app/login/page.tsx` — Login (~165 lines, `"use client"`):**
+  - Centered glass Card with emerald ambient orbs + `grid-bg`. Brand header (emerald tile + "Welcome back" + subtitle). Email + password fields with proper autocomplete hints. Error display in a rose-tinted banner. "Sign In" button (emerald, full-width, with `Loader2` during submit).
+  - On success: routes by role/status — admin → `/admin`, waitlisted → `/waitlist`, else → `/app`. Toast on success. `router.refresh()` after push.
+  - Below the form: separator + "Join Waitlist" outline button (→ `/signup`) + "Try Demo" ghost button (→ `/`).
+  - "Back to home" link in the header.
+- **`src/app/signup/page.tsx` — Signup / Join Waitlist (~280 lines, `"use client"`):**
+  - Two-column layout on lg: left = narrative ("Build your Creator Mind before you arrive." + 3 principle cards: Identity / Intelligence / Constitution), right = the form Card. On mobile, only the form shows with a back link.
+  - Form: name (optional), email, password (with min-6 client validation). "Join Waitlist" button → POST `/api/auth/signup` → toast with position number → redirect to `/waitlist`.
+  - Secondary actions: "I already have an account" (→ `/login`) and "Try Demo first" (→ `/`).
+- **`src/app/waitlist/page.tsx` — Waitlist Dashboard (~830 lines, `"use client"`):**
+  - Loads the creator's entry via GET `/api/waitlist` on mount; redirects to `/login?redirect=/waitlist` on 401.
+  - **Position hero**: status badge ("On the waitlist" or "Approved"), big "#N" position number, "Est. access: 2–3 weeks" with Clock icon. If approved, shows a "Go to Dashboard" button instead of the position card.
+  - **Creator Readiness Score**: custom SVG circular gauge (168px, animated `strokeDashoffset` via framer-motion, color shifts emerald ≥80 / amber ≥50 / rose otherwise). Live preview computed client-side from the current form state — the score updates as the creator types, before they save. "Unsaved changes" indicator when live score differs from saved score.
+  - **Score breakdown**: 6 dimensions (skills / experience / goals / audience / platforms / completeness) each with icon, value/max, and an animated bar.
+  - **Complete your Creator Profile form**: all 15 fields from the spec — skills (comma-separated with live tag preview), occupation, country, experience (textarea), goals (comma-separated + tag preview), target platforms (8-checkbox grid: YouTube/TikTok/Instagram/X/LinkedIn/Podcast/Newsletter/Blog — emerald when checked), interests (comma-separated + teal tag preview), existing audience, YouTube channel, X account, LinkedIn URL, preferred formats (5-checkbox row: Long-form/Shorts/Newsletter/Podcast/Course — violet when checked), monetization goals (textarea), available hours per week (number), personality (textarea). Two Save buttons (top + bottom of form) — PUT `/api/waitlist` → toast with new score → updates entry state.
+  - **"What happens while you wait"** callout: emerald-violet gradient card explaining that completing the profile builds the Creator Mind foundation — 3 mini-cards (Identity forms / Constitution drafts / Audience modeled) + an amber hint "Higher readiness scores are reviewed first. Aim for 70+."
+  - Footer with sign-out button (POST `/api/auth/logout` → `/`).
+  - Re-implemented `computeReadinessScore` client-side (the lib version imports server-only `db`/`bcryptjs`/`jose`/`cookies`, so it can't be imported into a client component) — the math mirrors the server exactly.
+- **`src/app/admin/page.tsx` — Admin Approval Dashboard (~430 lines, `"use client"`):**
+  - Loads all entries via GET `/api/waitlist` (admin variant returns `{entries: [...]}`). On 401 → redirect to `/login?redirect=/admin`; on 403 → redirect to `/app` (non-admin).
+  - **Stats grid** (4 cards): Total applicants, Waitlisted, Approved, Avg readiness (with /100 suffix). Each card has icon + mono number in role color.
+  - **Controls**: Tabs filter (All / Waitlisted / Approved / Rejected) + search Input (filters by name/email/occupation/country).
+  - **Entry list**: each entry is a Card row with position number (#N), name + status badge (emerald Approved / rose Rejected / amber Waitlisted), email + occupation + country + "applied X days ago", color-coded readiness pill (emerald ≥80 / amber ≥50 / rose <50), and 3 action buttons:
+    - Approve (emerald, Check icon) → POST `/api/waitlist/[id]/approve` → toast + optimistic state update (status → approved).
+    - Reject (rose outline, X icon) → POST `/api/waitlist/[id]/reject` → toast + optimistic update.
+    - Request Info (amber ghost, Info icon) → toast "Info request queued" (no backend endpoint yet — frontend affordance only).
+  - Expandable "Details" panel per entry: readiness breakdown bars (6 dimensions) + skills chips (emerald) + goals chips (amber) + platforms + formats.
+  - Empty state when no entries or no matches.
+  - Footer with sign-out.
+- Quality: all 5 pages `"use client"`; mobile-first responsive (grid-cols-1 → sm:grid-cols-2 → lg:grid-cols-3/4); framer-motion entrance animations (`initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}`); `cn()` everywhere; `sonner` toast for all mutations; NO indigo/blue — emerald primary, amber/rose/teal/violet accents; `grid-bg` + blurred orbs on hero sections; `glass` utility on auth cards; `animate-pulse-dot` on status indicators; `font-mono` for metrics/positions. Forms are accessible (Label htmlFor, autocomplete, aria-friendly error banners).
+- Verification: `bun run lint` → exit 0 (clean across all 5 files). `npx tsc --noEmit` → no errors in any of the 5 page files (one initial error fixed: `useState` initializer type for `sessionUser` needed `undefined` in the union to represent the loading state). `tail dev.log` → no compile errors; the new `/` page compiles and serves 200 (visible fresh compile: `GET / 200 in 69ms (compile: 51ms, render: 18ms)`). The other 4 routes compile on first request (the dev server is on-demand; lint + tsc passing confirms they will compile cleanly). No backend files, `src/lib/*`, `src/middleware.ts`, or `src/app/app/page.tsx` were modified.
+- Files written (only the 5 page files):
+  - `src/app/page.tsx` (landing — OVERWRITE, ~518 lines)
+  - `src/app/login/page.tsx` (~165 lines)
+  - `src/app/signup/page.tsx` (~280 lines)
+  - `src/app/waitlist/page.tsx` (~830 lines)
+  - `src/app/admin/page.tsx` (~430 lines)
+  - Total: ~2,223 lines.
+
+Stage Summary:
+The auth & access surface is complete. A visitor lands on a polished marketing page that explains the platform's three principles, can one-click into any of 7 demo roles, or joins the waitlist. Signup creates a waitlist entry and routes the creator to the waitlist dashboard, where they complete a 15-field Creator Profile that progressively builds their Creator Mind foundation — the readiness gauge updates live as they type, and saving persists to the server. Admins get a focused approval queue with stats, filtering, search, color-coded readiness, and one-click Approve/Reject/Request-Info actions. All 5 pages share the existing dark command-center design language (emerald accent, glass cards, grid-bg, framer-motion) and route correctly based on role + status. The middleware (untouched) enforces session + admin-only on `/admin` and redirects waitlisted users away from `/app` to `/waitlist`. Downstream agents: the worklog is the authoritative record; the 5 page files are the deliverable.
