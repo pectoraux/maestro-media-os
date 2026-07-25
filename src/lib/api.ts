@@ -510,4 +510,23 @@ export const api = {
   promoteMemory: (id: string, evidence?: string) =>
     fetch('/api/os/memory/promote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'promote', id, evidence }) }).then((r) => jsonOrThrow<{ memory: any }>(r)),
 
+
+  // ── Phase 8: Creator Mind + Knowledge Graph + Reasoning Trace ───────────
+  getCreatorMind: () =>
+    fetch('/api/os/mind', { cache: 'no-store' }).then((r) => jsonOrThrow<any>(r)),
+  getMindBrief: () =>
+    fetch('/api/os/mind?brief=true', { cache: 'no-store' }).then((r) => jsonOrThrow<{ brief: string }>(r)),
+  getKnowledgeGraph: (limit?: number) =>
+    fetch(`/api/os/knowledge-graph${limit ? `?limit=${limit}` : ''}`, { cache: 'no-store' }).then((r) => jsonOrThrow<any>(r)),
+  getNodeNeighbors: (id: string) =>
+    fetch(`/api/os/knowledge-graph/${id}`, { cache: 'no-store' }).then((r) => jsonOrThrow<any>(r)),
+  listTraces: (projectId?: string) =>
+    fetch(`/api/os/reasoning-trace${projectId ? `?projectId=${projectId}` : ''}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ traces: any[] }>(r)),
+  getTrace: (id: string) =>
+    fetch(`/api/os/reasoning-trace/${id}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ trace: any }>(r)),
+  getAudiences: () =>
+    fetch('/api/os/audiences', { cache: 'no-store' }).then((r) => jsonOrThrow<{ audiences: any[] }>(r)),
+  getGoals: (status?: string) =>
+    fetch(`/api/os/goals${status ? `?status=${status}` : ''}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ goals: any[] }>(r)),
+
 };

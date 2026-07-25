@@ -16,3 +16,7 @@ export * from "./provenance";
 export * from "./trust-engine";
 export * from "./artifact-envelope";
 export * from "./memory-lifecycle";
+export * from "./creator-mind";
+export * from "./knowledge-graph";
+export * from "./reasoning-trace";
+export * from "./goals-audiences";

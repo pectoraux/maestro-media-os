@@ -745,3 +745,69 @@ model ArtifactEnvelope {
   @@index([projectId, artifactType])
   @@map("artifact_envelopes")
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 8 — The Intelligence Substrate: Creator Mind, Knowledge Graph,
+// Reasoning Trace, Audiences, Goals, Creative Intent
+// The platform maintains a living model of the creator's mind.
+// Everything else is an expression of that model.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Goal: what the creator is trying to accomplish (the Director optimizes toward these)
+model Goal {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String   // growth | product | teaching | trust | revenue | community | retention
+  priority    String   @default("medium") // low | medium | high
+  status      String   @default("active") // active | achieved | abandoned
+  targetMetric String? // e.g. "100k subscribers", "8% CTR"
+  progress    Float    @default(0) // 0-1
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@map("goals")
+}
+
+// ── Audience: multiple audience models (authenticity is partly audience-dependent)
+model Audience {
+  id              String   @id @default(cuid())
+  name            String   // e.g. "Senior engineers", "Beginners", "Startup founders"
+  description     String?
+  vocabulary      String   @default("[]") // JSON: terms this audience uses
+  misconceptions  String   @default("[]") // JSON: common misunderstandings
+  interests       String   @default("[]") // JSON: what they care about
+  objections      String   @default("[]") // JSON: what they push back on
+  trustSignals    String   @default("[]") // JSON: what builds trust with them
+  preferredExamples String @default("[]") // JSON: examples that resonate
+  attentionSpan   String   @default("medium") // short | medium | long
+  expertiseLevel  String   @default("intermediate") // beginner | intermediate | advanced | expert
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("audiences")
+}
+
+// ── Reasoning Trace: auditable decision trail for every artifact
+// Records: intent → capabilities selected → evidence used → identity constraints →
+// constitution checks → trust analysis → human approvals → final artifact
+model ReasoningTrace {
+  id          String   @id @default(cuid())
+  projectId   String?
+  artifactType String
+  artifactRef String?
+  intent      String   // the creative intent that started this
+  steps       String   @default("[]") // JSON: [{ step, description, input, output, timestamp }]
+  capabilitiesUsed String @default("[]") // JSON: capability keys
+  evidenceUsed String   @default("[]") // JSON: evidence node refs
+  identityConstraints String @default("[]") // JSON: which identity dimensions were applied
+  constitutionChecks String @default("[]") // JSON: constitution check results
+  trustResult String   @default("{}") // JSON: trust profile summary
+  humanApprovals String @default("[]") // JSON: [{ stage, decision, feedback, timestamp }]
+  finalArtifact String? // the final artifact content (or ref)
+  createdAt   DateTime @default(now())
+
+  @@index([projectId, artifactType])
+  @@map("reasoning_traces")
+}

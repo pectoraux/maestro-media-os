@@ -30,6 +30,8 @@ import {
   Compass,
   Scale,
   ShieldCheck,
+  Brain,
+  Share2,
   Code2,
 } from "lucide-react";
 import { DashboardView } from "@/components/views/dashboard-view";
@@ -56,6 +58,8 @@ import { DeveloperView } from "@/components/views/developer-view";
 import { PrimitivesView } from "@/components/views/primitives-view";
 import { ConstitutionView } from "@/components/views/constitution-view";
 import { TrustView } from "@/components/views/trust-view";
+import { MindView } from "@/components/views/mind-view";
+import { KnowledgeGraphView } from "@/components/views/knowledge-graph-view";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -72,6 +76,8 @@ const NAV: { key: ViewKey; label: string; icon: React.ComponentType<{ className?
   { key: "publish", label: "YouTube Publishing", icon: Send, group: "Production" },
   { key: "competitors", label: "Competitor Intelligence", icon: Crosshair, group: "Intelligence" },
   { key: "voice-dna", label: "Voice DNA", icon: Fingerprint, group: "Intelligence" },
+  { key: "mind", label: "Creator Mind", icon: Brain, group: "Platform" },
+  { key: "knowledge-graph", label: "Knowledge Graph", icon: Share2, group: "Platform" },
   { key: "constitution", label: "Creative Constitution", icon: Scale, group: "Platform" },
   { key: "authenticity", label: "Authenticity Engine", icon: ShieldCheck, group: "Platform" },
   { key: "trust", label: "Trust Engine", icon: ShieldCheck, group: "Platform" },
@@ -256,6 +262,8 @@ export default function Home() {
             {view === "authenticity" && <AuthenticityView />}
             {view === "constitution" && <ConstitutionView />}
             {view === "trust" && <TrustView />}
+            {view === "mind" && <MindView />}
+            {view === "knowledge-graph" && <KnowledgeGraphView />}
             {view === "primitives" && <PrimitivesView />}
             {view === "developer" && <DeveloperView />}
             {view === "competitors" && <CompetitorsView />}

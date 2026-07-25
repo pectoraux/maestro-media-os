@@ -903,3 +903,90 @@ export interface MemoryLifecycleRecord {
   lifecycleMeta: { promotedAt?: string; promotedFrom?: string; evidence?: string; confidence?: number };
   createdAt: string;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 8 — The Intelligence Substrate: Creator Mind, Knowledge Graph,
+// Reasoning Trace, Audiences, Goals
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface GoalRecord {
+  id: string;
+  title: string;
+  description?: string | null;
+  category: "growth" | "product" | "teaching" | "trust" | "revenue" | "community" | "retention";
+  priority: "low" | "medium" | "high";
+  status: "active" | "achieved" | "abandoned";
+  targetMetric?: string | null;
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AudienceRecord {
+  id: string;
+  name: string;
+  description?: string | null;
+  vocabulary: string[];
+  misconceptions: string[];
+  interests: string[];
+  objections: string[];
+  trustSignals: string[];
+  preferredExamples: string[];
+  attentionSpan: "short" | "medium" | "long";
+  expertiseLevel: "beginner" | "intermediate" | "advanced" | "expert";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type KnowledgeRelation =
+  | "supports" | "contradicts" | "extends" | "caused" | "learned_from"
+  | "derived_from" | "inspired" | "explains" | "belongs_to" | "references";
+
+export interface ReasoningTraceStep {
+  step: string;
+  description: string;
+  input?: string;
+  output?: string;
+  timestamp: string;
+}
+
+export interface ReasoningTraceRecord {
+  id: string;
+  projectId?: string | null;
+  artifactType: string;
+  artifactRef?: string | null;
+  intent: string;
+  steps: ReasoningTraceStep[];
+  capabilitiesUsed: string[];
+  evidenceUsed: string[];
+  identityConstraints: string[];
+  constitutionChecks: any[];
+  trustResult: Record<string, unknown>;
+  humanApprovals: { stage: string; decision: string; feedback?: string; timestamp: string }[];
+  finalArtifact?: string | null;
+  createdAt: string;
+}
+
+// The Creator Mind — the unified model
+export interface CreatorMindRecord {
+  identity: {
+    mission?: string | null;
+    authenticityScore: number;
+    beliefs: { belief: string; strength: number }[];
+    values: string[];
+    frameworks: { name: string; description: string }[];
+    version: number;
+  };
+  constitution: { principleCount: number; categories: string[]; openViolations: number };
+  knowledge: { nodeCount: number; edgeCount: number; byType: Record<string, number> };
+  memory: { total: number; byLifecycle: Record<string, number> };
+  goals: GoalRecord[];
+  audiences: AudienceRecord[];
+  trust: { avgTrustScore: number; totalProfiles: number; approvedCount: number };
+  mediaDNA: { count: number; types: string[] };
+  assets: { count: number };
+  capabilities: { total: number; active: number };
+  extensions: { installed: number; total: number };
+  channels: { connected: number; total: number };
+  summary: string;
+}

@@ -735,3 +735,39 @@ Stage Summary:
 - Self-improving memory lifecycle: observation → pattern → lesson → principle → constitution. Memories promote up the lifecycle as they accumulate evidence, and promoting to constitution automatically creates a ConstitutionPrinciple. The system genuinely learns over time.
 - 36 Prisma models, 24 nav views, 17 OS kernel modules, 26 OS API routes.
 - The product is now positioned as identity and authenticity infrastructure for creators — the compounding Identity Graph, Constitution, Semantic Memory, Media DNA, trust profile, and capability ecosystem are the durable, hard-to-replicate assets. New AI models, media formats, and social platforms are replaceable components; the creator's accumulated intelligence is the enduring core.
+
+---
+Task ID: 1-5 (Phase 8 — The Intelligence Substrate)
+Agent: main
+Task: Build the Creator Mind (unified model), Knowledge Graph (typed edges), Reasoning Trace, Audiences, and Goals — the permanent abstractions
+
+Work Log:
+- Schema: added Goal (category, priority, targetMetric, progress), Audience (vocabulary, misconceptions, interests, objections, trustSignals, preferredExamples, attentionSpan, expertiseLevel), ReasoningTrace (intent, steps, capabilitiesUsed, evidenceUsed, identityConstraints, constitutionChecks, trustResult, humanApprovals, finalArtifact). Extended KnowledgeNode with lifecycle + lifecycleMeta (Phase 7). db:push OK (39 models).
+- Types: added GoalRecord, AudienceRecord, KnowledgeRelation (10 typed relations), ReasoningTraceStep, ReasoningTraceRecord, CreatorMindRecord (the unified model).
+- Seed (seed-mind.ts): 6 goals (grow to 100k subs, launch ML course, increase retention to 50%, build consulting pipeline, establish trust authority, teach beginners), 4 audiences (Senior engineers, Intermediate engineers, Startup founders, CTOs/VPs — each with vocabulary, misconceptions, interests, objections, trustSignals, preferredExamples), knowledge graph typed edges.
+- Kernel (src/lib/os/):
+  - creator-mind.ts: getCreatorMind (unifies identity + constitution + knowledge graph + semantic memory + goals + audiences + trust + media DNA + assets + capabilities + extensions + channels into one model), getMindBrief (LLM-generated natural-language "state of mind" summary).
+  - knowledge-graph.ts: getKnowledgeGraph (typed nodes + typed edges + connection counts + type distributions), getNodeNeighbors (graph traversal — returns a node's incoming/outgoing relationships), createEdge. EDGE_TYPES registry (10 typed relations: supports, contradicts, extends, caused, learned_from, derived_from, inspired, explains, belongs_to, references).
+  - reasoning-trace.ts: startTrace, addStep, recordCapabilities, recordEvidence, recordConstitutionChecks, recordTrustResult, recordHumanApproval, finalizeTrace, getTrace, listTraces. The auditable decision trail: intent → capabilities → evidence → identity constraints → constitution checks → trust → human approvals → final artifact.
+  - goals-audiences.ts: getGoals, createGoal, updateGoalProgress, getAudiences, createAudience.
+- API routes: /api/os/mind (GET + ?brief=true), /api/os/knowledge-graph (GET), /api/os/knowledge-graph/[id] (GET neighbors), /api/os/reasoning-trace (GET/POST), /api/os/reasoning-trace/[id] (GET/POST addStep), /api/os/audiences (GET/POST), /api/os/goals (GET/POST). 33 total OS routes.
+- API client: added getCreatorMind, getMindBrief, getKnowledgeGraph, getNodeNeighbors, listTraces, getTrace, getAudiences, getGoals.
+- Store + page.tsx: added "mind" and "knowledge-graph" ViewKeys + nav entries (Platform group, at the top — they're the unifying abstractions). 26 total nav items.
+- Built 2 new views:
+  - mind-view.tsx: the Creator Mind — LLM-generated "State of mind" brief, 10 clickable pillar cards (Identity, Constitution, Knowledge, Memory, Trust, Media DNA, Capabilities, Extensions, Channels, Assets), active goals with progress bars, audience models, knowledge graph preview, memory lifecycle.
+  - knowledge-graph-view.tsx: typed-edge graph visualization — nodes list (searchable, with connection counts, type-colored), click any node to traverse its relationships (incoming/outgoing with typed edge badges), edge type distribution.
+
+Agent Browser self-verification:
+- Creator Mind view: renders the "State of mind" LLM brief ("This creator's mind is a well-structured system focused on rigorous, hype-free education for technical decision-makers..."), 10 pillar cards (82% Identity v1, 15 Constitution principles, 24 Knowledge nodes/11 edges, 24 Memory, 6 Goals, 4 Audiences), goals with progress bars, audiences with expertise levels.
+- Knowledge Graph view: renders 24 nodes + 11 typed edges. Clicked "Core audience: senior engineers" (2 links) → showed its relationships with "→ explore" traversal buttons. Edge type distribution shows typed relations (supports, evidence, reinforces, addresses, applied_in, competitor_gap).
+- Footer sticky (900px). Mobile: 390px no overflow. Lint: clean. Dev log: no errors.
+- Screenshots: verify-phase8-mind.png, verify-phase8-knowledge-graph.png.
+
+Stage Summary:
+- The platform now maintains a living model of the creator's mind — the intelligence substrate. Everything else (videos, newsletters, podcasts) is an expression of that model.
+- The Creator Mind unifies all 10 intelligence dimensions into one navigable model with an LLM-generated "state of mind" brief.
+- The Knowledge Graph has typed nodes + typed edges (supports, contradicts, extends, caused, learned_from, etc.) — the Director can reason over relationships instead of isolated documents.
+- The Reasoning Trace provides an auditable decision trail for every artifact: intent → capabilities → evidence → identity constraints → constitution checks → trust → human approvals → final artifact.
+- 6 goals (the Director optimizes toward these), 4 audience models (authenticity is partly audience-dependent).
+- 39 Prisma models, 26 nav views, 21 OS kernel modules, 33 OS API routes.
+- The moat is now the Creator Intelligence Graph that grows over years — identity, constitution, knowledge, memory, goals, audiences, trust, DNA, assets, provenance. New AI models and platforms are replaceable components; the creator's accumulated intelligence is the enduring core.
