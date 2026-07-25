@@ -772,3 +772,66 @@ export interface PipelineAuthenticityResult {
   blockingArtifacts: { type: string; reason: string }[];
   publishAllowed: boolean;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 6 — Creative Constitution + Creative Policies + Provenance
+// The "why" layer. Authenticity becomes Constitutional AI.
+// ════════════════════════════════════════════════════════════════════════════
+
+export type ConstitutionCategory = "truthfulness" | "teaching" | "tone" | "business" | "audience" | "editing";
+
+export interface ConstitutionPrincipleRecord {
+  id: string;
+  category: ConstitutionCategory;
+  principle: string;
+  rationale: string;
+  enforcement: "block" | "warn" | "log";
+  examples: string[];
+  isActive: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConstitutionViolationRecord {
+  id: string;
+  principleId?: string | null;
+  category: string;
+  principle: string;
+  artifactType: string;
+  artifactRef?: string | null;
+  projectId?: string | null;
+  severity: "block" | "warn" | "log";
+  reason: string;
+  context: Record<string, unknown>;
+  status: "open" | "resolved" | "overridden";
+  resolution?: string | null;
+  createdAt: string;
+}
+
+export interface ConstitutionCheckResult {
+  passed: boolean;
+  overallAlignment: number; // 0-100 — how aligned the artifact is with the constitution
+  violations: { category: string; principle: string; severity: string; reason: string }[];
+  categoryScores: { category: ConstitutionCategory; score: number }[];
+  riskLevel: "low" | "medium" | "high";
+}
+
+export interface CreativePolicyRecord {
+  id: string;
+  name: string;
+  rule: string;
+  scope: "voice" | "video" | "publish" | "research" | "opinion" | "all";
+  condition: Record<string, unknown>;
+  action: "require_approval" | "block" | "allow" | "log";
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PolicyEvaluationResult {
+  allowed: boolean;
+  requiresApproval: boolean;
+  matchedPolicies: { name: string; rule: string; action: string }[];
+  reason: string;
+}

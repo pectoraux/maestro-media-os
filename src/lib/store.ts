@@ -24,7 +24,8 @@ export type ViewKey =
   | "director"
   | "authenticity"
   | "developer"
-  | "primitives";
+  | "primitives"
+  | "constitution";
 
 interface AppState {
   view: ViewKey;

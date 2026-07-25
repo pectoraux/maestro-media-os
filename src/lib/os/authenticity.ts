@@ -12,6 +12,7 @@ import { llmJson } from "@/lib/zai";
 import { getMediaDNAContext } from "./media-dna";
 import { getMemoryContext } from "./memory";
 import { getIdentityContext } from "./identity";
+import { checkConstitution } from "./constitution";
 import type { AuthenticityCheckResult, AuthenticityDimensionScore, AuthenticityScoreRecord, PipelineArtifact, PipelineAuthenticityResult } from "@/lib/types";
 
 export const DEFAULT_THRESHOLD = 70;
@@ -85,10 +86,35 @@ Return STRICT JSON:
 
   // Pass condition: overall >= threshold AND no dimension below 60 (blocking floor)
   const minDim = Math.min(...Object.values(dims));
-  const passed = overall >= threshold && minDim >= 60;
-  const finalBlockingReason = passed ? null : (blockingReason || `Overall ${overall} or a dimension below 60 (min: ${minDim}) does not meet the authenticity threshold (${threshold}).`);
+  let passed = overall >= threshold && minDim >= 60;
+  let finalBlockingReason = passed ? null : (blockingReason || `Overall ${overall} or a dimension below 60 (min: ${minDim}) does not meet the authenticity threshold (${threshold}).`);
+
+  // ── Constitutional AI: also check against the Creative Constitution ──
+  const constitutionResult = await checkConstitution({
+    artifactType: artifact.type,
+    content: artifact.content,
+    projectId: artifact.projectId,
+    artifactRef: artifact.ref,
+  }).catch(() => null);
+
+  const constitutionAlignment = constitutionResult?.overallAlignment ?? 100;
+  const constitutionViolations = constitutionResult?.violations ?? [];
+  const hasBlockingViolation = constitutionViolations.some((v) => v.severity === "block");
+
+  // If constitution has a blocking violation, the artifact cannot pass
+  if (hasBlockingViolation) {
+    passed = false;
+    const blockV = constitutionViolations.find((v) => v.severity === "block");
+    finalBlockingReason = `Constitution violation (${blockV?.category}): ${blockV?.reason}`;
+  } else if (constitutionAlignment < 70) {
+    passed = false;
+    finalBlockingReason = `Constitution alignment ${constitutionAlignment}/100 is below threshold. Risk: ${constitutionResult?.riskLevel}.`;
+  }
 
   const rationale = data?.rationale ?? "Authenticity assessment complete.";
+  const fullRationale = constitutionResult
+    ? `${rationale} Constitution alignment: ${constitutionAlignment}/100 (${constitutionResult.riskLevel} risk, ${constitutionViolations.length} violations).`
+    : rationale;
 
   // Persist the score
   const score = await db.authenticityScore.create({
@@ -107,7 +133,7 @@ Return STRICT JSON:
       passed,
       blockingReason: finalBlockingReason,
       threshold,
-      rationale,
+      rationale: fullRationale,
     },
   });
 
@@ -117,8 +143,14 @@ Return STRICT JSON:
     dimensions: dims,
     blockingReason: finalBlockingReason,
     threshold,
-    rationale,
+    rationale: fullRationale,
     scoreId: score.id,
+    constitution: constitutionResult ? {
+      alignment: constitutionAlignment,
+      riskLevel: constitutionResult.riskLevel,
+      violations: constitutionViolations,
+      categoryScores: constitutionResult.categoryScores,
+    } : null,
   };
 }
 

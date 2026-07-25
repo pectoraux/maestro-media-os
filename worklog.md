@@ -672,3 +672,35 @@ Stage Summary:
 - Pervasive Authenticity: every artifact in the pipeline (script → thumbnail → voice → video → description) passes through the Authenticity Engine before publish.
 - Extensions declare which DNA types they improve (authenticity + improvesDNA fields), so installing an extension enriches the authenticity reference models automatically.
 - 31 Prisma models, 22 nav views, 12 OS kernel modules, 17 OS API routes. The architecture is now identity-first, capability-driven, authenticity-governed, platform-agnostic, and developer-extensible.
+
+---
+Task ID: 1-5 (Phase 6 — Creative Constitution)
+Agent: main
+Task: Build the Creative Constitution — the "why" layer. Authenticity becomes Constitutional AI.
+
+Work Log:
+- Schema: added ConstitutionPrinciple (6 categories: truthfulness/teaching/tone/business/audience/editing; enforcement: block/warn/log; examples), ConstitutionViolation (logged when artifacts break principles; severity, reason, context, status), CreativePolicy (runtime rules governing capability execution; scope, condition, action: require_approval/block/allow/log). db:push OK (34 models).
+- Types: added ConstitutionCategory, ConstitutionPrincipleRecord, ConstitutionViolationRecord, ConstitutionCheckResult (overallAlignment, violations, categoryScores, riskLevel), CreativePolicyRecord, PolicyEvaluationResult.
+- Seed (seed-constitution.ts): 15 constitution principles across 6 categories (truthfulness: never fabricate/distinguish opinion from fact/never exaggerate certainty; teaching: explain before persuading/prefer first principles/show tradeoffs; tone: curious not condescending/remain calm/never manufacture urgency; business: never recommend products I wouldn't use/disclose sponsorships; audience: respect beginners/never optimize for outrage; editing: remove filler/keep strongest argument). 6 creative policies (voice cloning approval, no auto-publish, AI research allowed, opinions are human-only, no AI video without review, fact-check mandatory). Ran successfully.
+- Kernel (src/lib/os/):
+  - constitution.ts: getConstitution, getConstitutionByCategory, updatePrinciple, addPrinciple, checkConstitution (the enforcement engine — takes an artifact, evaluates against all active principles via LLM, returns per-category scores 0-100, violations with severity+reason, overall alignment, risk level; persists violations to audit trail), getOpenViolations, resolveViolation. CONSTITUTION_CATEGORIES registry.
+  - policies.ts: getPolicies, createPolicy, updatePolicy, evaluatePolicies (evaluates a capability invocation against all active policies — returns allowed/requiresApproval/matchedPolicies).
+  - provenance.ts: traceProvenance (walks parentId chain of MediaPrimitives), recordProvenance, explainProvenance (human-readable explanation of where an artifact came from).
+  - authenticity.ts: UPGRADED — now calls checkConstitution after the 7-dimension authenticity check. Constitution alignment factors into the pass/block decision: a blocking constitution violation (severity="block") fails the artifact even if authenticity scores are high. The result now includes a `constitution` field with alignment, riskLevel, violations, and categoryScores. The rationale now includes constitution alignment.
+- API routes: /api/os/constitution (GET/POST add+update), /api/os/constitution/check (POST check + GET violations), /api/os/policies (GET/POST create+update), /api/os/provenance/[id] (GET trace + ?explain=true). 21 total OS routes.
+- API client: added getConstitution, checkConstitution, getConstitutionViolations, getPolicies, createPolicy, traceProvenance, explainProvenance.
+- Store + page.tsx: added "constitution" ViewKey + Creative Constitution nav entry (Platform group, first — it's the governing layer). 23 total nav items.
+- Built constitution-view.tsx: stats (principles, violations, policies, categories), constitution check input (artifact type selector + textarea + "Load violation sample" + check button), result display (pass/fail banner, alignment score, risk level, 6 category score cards, violations list with severity coloring), principles by category (6 cards with all 15 principles + enforcement badges), creative policies section (6 policies with scope/action badges), open violations panel.
+
+Agent Browser self-verification:
+- Constitution view: renders all 6 categories with 15 principles, 6 policies, stats correct.
+- Constitution check: loaded the violation sample ("You won't BELIEVE... This will DESTROY your performance! Act now before your competitors leave you behind!"), ran real check → LLM scored 0/100 alignment, HIGH risk, 7 violations. The violation was logged to the Open Violations panel. This is exactly the "manufactured urgency violates your constitution" behavior — the publish gate would block this artifact.
+- Footer sticky (3477px content, footer at bottom). Mobile: 390px no overflow. Lint: clean. Dev log: no errors.
+- Screenshot: verify-phase6-constitution.png.
+
+Stage Summary:
+- The Creative Constitution is the "why" layer — it answers why an artifact should or shouldn't be published, beyond just sounding like the creator.
+- Authenticity is now Constitutional AI: every artifact is scored on both 7 authenticity dimensions (voice/reasoning/humor/vocabulary/editing/visualIdentity/audienceExpectation) AND 6 constitution categories (truthfulness/teaching/tone/business/audience/editing). A blocking constitution violation fails the artifact even if authenticity is high.
+- 15 principles across 6 categories, 6 runtime policies (voice cloning approval, no auto-publish, opinions are human-only, etc.).
+- The long-term architecture diagram is now realized: Creator → Creative Constitution → Identity Graph → Semantic Memory + Media DNA → Authenticity Engine (now Constitutional) → Director → Capability Graph + Contracts → Extension Marketplace → Media Primitives → Transformation Pipeline → Output Connectors.
+- 34 Prisma models, 23 nav views, 14 OS kernel modules, 21 OS API routes. The system is now identity-first, capability-driven, authenticity-governed (constitutionally), platform-agnostic, and developer-extensible.

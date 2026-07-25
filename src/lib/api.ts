@@ -478,4 +478,21 @@ export const api = {
   checkPipeline: (artifacts: { type: string; content: string }[], projectId?: string, threshold?: number) =>
     fetch('/api/os/pipeline/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ artifacts, projectId, threshold }) }).then((r) => jsonOrThrow<any>(r)),
 
+
+  // ── Phase 6: Constitution + Policies + Provenance ───────────────────────
+  getConstitution: () =>
+    fetch('/api/os/constitution', { cache: 'no-store' }).then((r) => jsonOrThrow<{ principles: any[] }>(r)),
+  checkConstitution: (body: { artifactType?: string; content: string; projectId?: string }) =>
+    fetch('/api/os/constitution/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => jsonOrThrow<any>(r)),
+  getConstitutionViolations: () =>
+    fetch('/api/os/constitution/check', { cache: 'no-store' }).then((r) => jsonOrThrow<{ violations: any[] }>(r)),
+  getPolicies: () =>
+    fetch('/api/os/policies', { cache: 'no-store' }).then((r) => jsonOrThrow<{ policies: any[] }>(r)),
+  createPolicy: (body: { name: string; rule: string; scope: string; action?: string }) =>
+    fetch('/api/os/policies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', ...body }) }).then((r) => jsonOrThrow<{ policy: any }>(r)),
+  traceProvenance: (id: string) =>
+    fetch(`/api/os/provenance/${id}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ chain: any[]; sources: any[] }>(r)),
+  explainProvenance: (id: string) =>
+    fetch(`/api/os/provenance/${id}?explain=true`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ explanation: string }>(r)),
+
 };

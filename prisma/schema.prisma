@@ -625,3 +625,66 @@ model MediaPrimitive {
   @@index([projectId])
   @@map("media_primitives")
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 6 — Creative Constitution + Creative Policies + Provenance
+// The "why" layer. The Constitution encodes principles (not just style).
+// Authenticity becomes Constitutional AI — scoring alignment with principles.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Constitution Principle: a machine-readable creative principle
+// Categories: truthfulness | teaching | tone | business | audience | editing
+model ConstitutionPrinciple {
+  id          String   @id @default(cuid())
+  category    String   // truthfulness | teaching | tone | business | audience | editing
+  principle   String   // the rule, e.g. "Never fabricate evidence"
+  rationale   String   // why this principle exists
+  enforcement String   @default("block") // block | warn | log
+  examples    String   @default("[]") // JSON: example violations
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("constitution_principles")
+}
+
+// ── Constitution Violation: logged when an artifact breaks a principle
+model ConstitutionViolation {
+  id            String   @id @default(cuid())
+  principleId   String?
+  category      String
+  principle     String   // denormalized for quick display
+  artifactType  String   // script | trifecta | thumbnail | scene | voice | video | metadata
+  artifactRef   String?
+  projectId     String?
+  severity      String   // block | warn | log
+  reason        String   // what triggered the violation
+  context       String   @default("{}") // JSON: the offending excerpt + surrounding context
+  status        String   @default("open") // open | resolved | overridden
+  resolution    String?  // JSON: how it was resolved
+  createdAt     DateTime @default(now())
+
+  @@index([status])
+  @@index([projectId])
+  @@map("constitution_violations")
+}
+
+// ── Creative Policy: a runtime rule that governs capability execution
+// Different from DNA (describes identity) — policies define boundaries.
+// e.g. "Never clone my voice unless I explicitly approve"
+model CreativePolicy {
+  id          String   @id @default(cuid())
+  name        String   // short name
+  rule        String   // the policy rule (natural language)
+  scope       String   // voice | video | publish | research | opinion | all
+  condition   String   @default("{}") // JSON: structured condition (capability key, threshold, etc.)
+  action      String   @default("require_approval") // require_approval | block | allow | log
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([scope])
+  @@map("creative_policies")
+}
