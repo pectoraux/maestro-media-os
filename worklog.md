@@ -704,3 +704,34 @@ Stage Summary:
 - 15 principles across 6 categories, 6 runtime policies (voice cloning approval, no auto-publish, opinions are human-only, etc.).
 - The long-term architecture diagram is now realized: Creator → Creative Constitution → Identity Graph → Semantic Memory + Media DNA → Authenticity Engine (now Constitutional) → Director → Capability Graph + Contracts → Extension Marketplace → Media Primitives → Transformation Pipeline → Output Connectors.
 - 34 Prisma models, 23 nav views, 14 OS kernel modules, 21 OS API routes. The system is now identity-first, capability-driven, authenticity-governed (constitutionally), platform-agnostic, and developer-extensible.
+
+---
+Task ID: 1-5 (Phase 7 — Trust Engine + Artifact Envelope + Self-Improving Memory)
+Agent: main
+Task: Build the Trust Engine (the platform's biggest differentiator), Artifact Envelope (pervasive authenticity), and self-improving memory lifecycle
+
+Work Log:
+- Schema: added TrustProfile model (trustScore, evidenceScore, sourceDiversity, hallucinationRisk, authenticityScore, constitutionAlignment, creatorConfidence, audienceConfidence, reviewStatus, riskFactors, sources), ArtifactEnvelope model (authenticityScore, constitutionAlignment, confidence, provenance, sources, identityVersion, modelVersion, generatedBy, trustProfileId). Extended KnowledgeNode with lifecycle (observation|pattern|lesson|principle|constitution) + lifecycleMeta. db:push OK (36 models).
+- Types: added TrustProfileRecord, TrustCheckResult, ArtifactEnvelopeRecord, MemoryLifecycle, MemoryLifecycleRecord.
+- Kernel (src/lib/os/):
+  - trust-engine.ts: checkTrust (runs authenticity + constitution checks in parallel, then LLM-based trust analysis: evidenceScore, sourceDiversity, hallucinationRisk, audienceConfidence, riskFactors, sources, rationale). Composite trustScore = weighted combination (evidence 0.20, sourceDiversity 0.15, authenticity 0.20, constitution 0.15, creatorConfidence 0.10, audienceConfidence 0.10, (100-hallucinationRisk) 0.10). reviewStatus: approved if trust>=75 & hallucination<40, rejected if trust<40 or hallucination>70, else pending. listTrustProfiles, getTrustProfile, updateReviewStatus.
+  - artifact-envelope.ts: createEnvelope (the pervasive authenticity service — runs trust check, then persists the full envelope: authenticity + constitutionAlignment + confidence + provenance + sources + identityVersion + modelVersion + generatedBy). Every capability/extension/connector can invoke this. getEnvelope, listEnvelopes, getEnvelopeForArtifact.
+  - memory-lifecycle.ts: LIFECYCLE_STAGES (observation→pattern→lesson→principle→constitution). getMemoriesByLifecycle, getLifecycleDistribution, promoteMemory (promotes a memory to the next stage; if promoted to constitution, also creates a ConstitutionPrinciple), createObservation.
+- API routes: /api/os/trust/check (POST), /api/os/trust/profiles (GET), /api/os/envelope (GET/POST), /api/os/envelope/[id] (GET), /api/os/memory/promote (GET/POST promote+observe). 26 total OS routes.
+- API client: added checkTrust, listTrustProfiles, createEnvelope, listEnvelopes, getMemoriesByLifecycle, promoteMemory.
+- Store + page.tsx: added "trust" ViewKey + Trust Engine nav entry (Platform group). 24 total nav items.
+- Built trust-view.tsx: trust check input + "Load hallucination sample", result display (pass/fail/pending banner, 8-dimension trust metrics grid with animated bars, risk factors list, detected sources, rationale, artifact envelope callout), self-improving memory lifecycle visualization (5 stages with counts + promote buttons), recent trust profiles list.
+
+Agent Browser self-verification:
+- Trust Engine view: renders all sections. Memory lifecycle shows 24 observations at the observation stage.
+- Trust check: loaded the hallucination sample (fake Stanford study, non-existent Nature paper, vague industry claims), ran real analysis → LLM scored 28/100 trust, REJECTED. The trust profile showed all 8 dimensions: trustScore, evidenceScore, sourceDiversity, hallucinationRisk, authenticityScore, constitutionAlignment, creatorConfidence, audienceConfidence. Risk factors and sources detected. Artifact envelope displayed.
+- This is exactly the "can the audience trust this?" behavior — the fake study with no real sources scored low evidence, low source diversity, high hallucination risk → rejected.
+- Footer sticky (2054px content, footer at bottom). Mobile: 395px no overflow. Lint: clean. Dev log: no errors.
+- Screenshot: verify-phase7-trust.png.
+
+Stage Summary:
+- The Trust Engine is the platform's biggest differentiator: not just "is this authentic?" but "can the audience trust this?"
+- Every artifact now carries an Artifact Envelope: authenticity + constitutionAlignment + confidence + provenance + sources + identityVersion + modelVersion + generatedBy. Authenticity is now a pervasive platform service that every capability, extension, connector, and workflow can invoke.
+- Self-improving memory lifecycle: observation → pattern → lesson → principle → constitution. Memories promote up the lifecycle as they accumulate evidence, and promoting to constitution automatically creates a ConstitutionPrinciple. The system genuinely learns over time.
+- 36 Prisma models, 24 nav views, 17 OS kernel modules, 26 OS API routes.
+- The product is now positioned as identity and authenticity infrastructure for creators — the compounding Identity Graph, Constitution, Semantic Memory, Media DNA, trust profile, and capability ecosystem are the durable, hard-to-replicate assets. New AI models, media formats, and social platforms are replaceable components; the creator's accumulated intelligence is the enduring core.

@@ -13,3 +13,6 @@ export * from "./capability-contracts";
 export * from "./constitution";
 export * from "./policies";
 export * from "./provenance";
+export * from "./trust-engine";
+export * from "./artifact-envelope";
+export * from "./memory-lifecycle";

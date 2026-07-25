@@ -246,12 +246,16 @@ model KnowledgeNode {
   content   String
   weight    Float    @default(1)
   projectId String?
+  // Memory lifecycle: observation → pattern → lesson → principle → constitution
+  lifecycle    String   @default("observation") // observation | pattern | lesson | principle | constitution
+  lifecycleMeta String  @default("{}") // JSON: { promotedAt, promotedFrom, evidence, confidence }
   createdAt DateTime @default(now())
 
   edgesFrom KnowledgeEdge[] @relation("KnowledgeEdgeSource")
   edgesTo   KnowledgeEdge[] @relation("KnowledgeEdgeTarget")
 
   @@index([type])
+  @@index([lifecycle])
   @@map("knowledge_nodes")
 }
 
@@ -687,4 +691,57 @@ model CreativePolicy {
 
   @@index([scope])
   @@map("creative_policies")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 7 — Trust Engine + Artifact Envelope + Self-Improving Memory
+// The product isn't AI generation (commodity). It's identity & authenticity
+// infrastructure. Every artifact carries a trust profile + provenance envelope.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Trust Profile: every artifact gets a trust profile (the platform's biggest differentiator)
+model TrustProfile {
+  id                String   @id @default(cuid())
+  projectId         String?
+  artifactType      String   // script | trifecta | thumbnail | scene | voice | video | full_production
+  artifactRef       String?
+  trustScore        Float    // 0-100 composite trust
+  evidenceScore     Float    // how well-supported by evidence
+  sourceDiversity   Float    // how many independent sources
+  hallucinationRisk Float    // 0-100 (lower = safer)
+  authenticityScore Float    // from the Authenticity Engine
+  constitutionAlignment Float // from the Constitution check
+  creatorConfidence Float    // creator's stated confidence
+  audienceConfidence Float   // projected audience confidence
+  reviewStatus      String   @default("pending") // pending | reviewed | approved | rejected
+  riskFactors       String   @default("[]") // JSON: [{ factor, severity }]
+  sources           String   @default("[]") // JSON: [{ type, url, reliability }]
+  createdAt         DateTime @default(now())
+
+  @@index([projectId, artifactType])
+  @@index([reviewStatus])
+  @@map("trust_profiles")
+}
+
+// ── Artifact Envelope: every artifact carries its full metadata envelope
+// authenticity + constitutionAlignment + confidence + provenance + sources +
+// identityVersion + modelVersion + generatedBy
+model ArtifactEnvelope {
+  id                  String   @id @default(cuid())
+  projectId           String?
+  artifactType        String
+  artifactRef         String?
+  authenticityScore   Float    @default(0)
+  constitutionAlignment Float  @default(0)
+  confidence          Float    @default(0) // 0-1, how confident the system is
+  provenance          String   @default("[]") // JSON: chain of sources
+  sources             String   @default("[]") // JSON: [{ type, url, reliability }]
+  identityVersion     String?  // which Creator Identity version was used
+  modelVersion        String?  // which model/provider generated this
+  generatedBy         String   // creator | agent:<type> | extension:<id> | capability:<key>
+  trustProfileId      String?  // link to TrustProfile
+  createdAt           DateTime @default(now())
+
+  @@index([projectId, artifactType])
+  @@map("artifact_envelopes")
 }

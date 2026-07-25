@@ -28,8 +28,8 @@ import {
   IdCard,
   Plug,
   Compass,
-  ShieldCheck,
   Scale,
+  ShieldCheck,
   Code2,
 } from "lucide-react";
 import { DashboardView } from "@/components/views/dashboard-view";
@@ -55,6 +55,7 @@ import { AuthenticityView } from "@/components/views/authenticity-view";
 import { DeveloperView } from "@/components/views/developer-view";
 import { PrimitivesView } from "@/components/views/primitives-view";
 import { ConstitutionView } from "@/components/views/constitution-view";
+import { TrustView } from "@/components/views/trust-view";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -73,6 +74,7 @@ const NAV: { key: ViewKey; label: string; icon: React.ComponentType<{ className?
   { key: "voice-dna", label: "Voice DNA", icon: Fingerprint, group: "Intelligence" },
   { key: "constitution", label: "Creative Constitution", icon: Scale, group: "Platform" },
   { key: "authenticity", label: "Authenticity Engine", icon: ShieldCheck, group: "Platform" },
+  { key: "trust", label: "Trust Engine", icon: ShieldCheck, group: "Platform" },
   { key: "primitives", label: "Media Primitives", icon: Boxes, group: "Platform" },
   { key: "identity", label: "Creator Identity", icon: IdCard, group: "Platform" },
   { key: "marketplace", label: "Capability Marketplace", icon: Store, group: "Platform" },
@@ -253,6 +255,7 @@ export default function Home() {
             {view === "connectors" && <ConnectorsView />}
             {view === "authenticity" && <AuthenticityView />}
             {view === "constitution" && <ConstitutionView />}
+            {view === "trust" && <TrustView />}
             {view === "primitives" && <PrimitivesView />}
             {view === "developer" && <DeveloperView />}
             {view === "competitors" && <CompetitorsView />}

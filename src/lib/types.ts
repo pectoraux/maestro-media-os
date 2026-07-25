@@ -835,3 +835,71 @@ export interface PolicyEvaluationResult {
   matchedPolicies: { name: string; rule: string; action: string }[];
   reason: string;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 7 — Trust Engine + Artifact Envelope + Self-Improving Memory
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface TrustProfileRecord {
+  id: string;
+  projectId?: string | null;
+  artifactType: string;
+  artifactRef?: string | null;
+  trustScore: number;
+  evidenceScore: number;
+  sourceDiversity: number;
+  hallucinationRisk: number;
+  authenticityScore: number;
+  constitutionAlignment: number;
+  creatorConfidence: number;
+  audienceConfidence: number;
+  reviewStatus: "pending" | "reviewed" | "approved" | "rejected";
+  riskFactors: { factor: string; severity: string }[];
+  sources: { type: string; url?: string; reliability: number }[];
+  createdAt: string;
+}
+
+export interface TrustCheckResult {
+  trustScore: number;
+  evidenceScore: number;
+  sourceDiversity: number;
+  hallucinationRisk: number;
+  authenticityScore: number;
+  constitutionAlignment: number;
+  creatorConfidence: number;
+  audienceConfidence: number;
+  reviewStatus: string;
+  riskFactors: { factor: string; severity: string }[];
+  sources: { type: string; url?: string; reliability: number }[];
+  trustProfileId: string;
+  rationale: string;
+}
+
+export interface ArtifactEnvelopeRecord {
+  id: string;
+  projectId?: string | null;
+  artifactType: string;
+  artifactRef?: string | null;
+  authenticityScore: number;
+  constitutionAlignment: number;
+  confidence: number;
+  provenance: { step: string; capability: string; timestamp: string }[];
+  sources: { type: string; url?: string; reliability: number }[];
+  identityVersion?: string | null;
+  modelVersion?: string | null;
+  generatedBy: string;
+  trustProfileId?: string | null;
+  createdAt: string;
+}
+
+export type MemoryLifecycle = "observation" | "pattern" | "lesson" | "principle" | "constitution";
+
+export interface MemoryLifecycleRecord {
+  id: string;
+  type: string;
+  lifecycle: MemoryLifecycle;
+  label: string;
+  content: string;
+  lifecycleMeta: { promotedAt?: string; promotedFrom?: string; evidence?: string; confidence?: number };
+  createdAt: string;
+}

@@ -495,4 +495,19 @@ export const api = {
   explainProvenance: (id: string) =>
     fetch(`/api/os/provenance/${id}?explain=true`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ explanation: string }>(r)),
 
+
+  // ── Phase 7: Trust Engine + Envelope + Memory Lifecycle ─────────────────
+  checkTrust: (body: { artifactType?: string; content: string; projectId?: string; declaredSources?: any[]; creatorConfidence?: number }) =>
+    fetch('/api/os/trust/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => jsonOrThrow<any>(r)),
+  listTrustProfiles: (projectId?: string) =>
+    fetch(`/api/os/trust/profiles${projectId ? `?projectId=${projectId}` : ''}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ profiles: any[] }>(r)),
+  createEnvelope: (body: { artifactType?: string; content: string; generatedBy?: string; projectId?: string; declaredSources?: any[] }) =>
+    fetch('/api/os/envelope', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => jsonOrThrow<any>(r)),
+  listEnvelopes: (projectId?: string) =>
+    fetch(`/api/os/envelope${projectId ? `?projectId=${projectId}` : ''}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ envelopes: any[] }>(r)),
+  getMemoriesByLifecycle: (stage?: string) =>
+    fetch(`/api/os/memory/promote${stage ? `?stage=${stage}` : ''}`, { cache: 'no-store' }).then((r) => jsonOrThrow<{ memories: any[]; distribution: Record<string, number> }>(r)),
+  promoteMemory: (id: string, evidence?: string) =>
+    fetch('/api/os/memory/promote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'promote', id, evidence }) }).then((r) => jsonOrThrow<{ memory: any }>(r)),
+
 };
